@@ -6,10 +6,13 @@
     "strict": true,
     "sourceMap": true,
     "allowJs": false,
-    "removeComments": true,
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "declaration": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
