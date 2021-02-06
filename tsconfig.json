@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "target": "ESNext",
+    "module": "commonjs",
+    "strict": true,
+    "sourceMap": true,
+    "allowJs": false,
+    "removeComments": true,
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "declaration": true
+  }
+}

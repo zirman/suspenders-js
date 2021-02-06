@@ -1,0 +1,39 @@
+{
+  "name": "suspenders-js",
+  "version": "0.0.1",
+  "description": "Asynchronous programming library using coroutines and functional reactive programming in JavaScript.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prepublish": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/zirman/suspenders-js.git"
+  },
+  "keywords": [
+    "asynchronous",
+    "coroutines",
+    "reactive",
+    "communicating sequential processes",
+    "csp",
+    "channels",
+    "functional",
+    "functional reactive",
+    "functional reactive programming",
+    "frp",
+    "subjects",
+    "scope",
+    "structured concurrency"
+  ],
+  "author": "Robert Chrzanowski",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/zirman/suspenders-js/issues"
+  },
+  "homepage": "https://github.com/zirman/suspenders-js#readme",
+  "dependencies": {
+    "typescript": "^4.1.3"
+  }
+}
