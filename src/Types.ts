@@ -1,4 +1,4 @@
-import { Scope } from "./Scope.js"
+import { Scope } from "./Scope"
 
 /**
  * Use yield on this in a coroutine to suspend the coroutine on an async task that resolves to T.

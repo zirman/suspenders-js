@@ -1,4 +1,4 @@
-import { Observer, ResultCallback, Suspender } from "./Types.js";
+import { Observer, ResultCallback, Suspender } from "./Types";
 
 /**
  * Channels are used to send and receive messages between coroutines. Channels can be buffered so

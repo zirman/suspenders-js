@@ -1,4 +1,4 @@
-import { Observer } from "./Types.js";
+import { Observer } from "./Types";
 
 /**
  * Wrapper around a function that implements Observer<T>.

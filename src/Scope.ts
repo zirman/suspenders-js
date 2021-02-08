@@ -1,7 +1,7 @@
-import { ScopeFinishingError } from "./Errors.js";
-import { Flow } from "./Flow.js";
-import { ObserverFunction } from "./ObserverFunction.js";
-import { CancelFunction, Coroutine, CoroutineFactory, Observer, Result, ResultCallback, Suspender } from "./Types.js";
+import { ScopeFinishingError } from "./Errors";
+import { Flow } from "./Flow";
+import { ObserverFunction } from "./ObserverFunction";
+import { CancelFunction, Coroutine, CoroutineFactory, Observer, Result, ResultCallback, Suspender } from "./Types";
 
 /**
  * Scope is used to start groups of coroutines that are canceled together. If any coroutine in the
@@ -44,14 +44,6 @@ export class Scope {
   launch<T>(factory: CoroutineFactory<T>): CancelFunction {
     this.checkIfFinishing();
     const coroutine = factory.call(this);
-    this.resume(coroutine, { value: undefined });
-    return () => {
-      // if there isn't a cancel callback for the coroutine, it was canceled or had completed
-      this.cancelCallbacks.get(coroutine)?.call(undefined);
-    };
-  }
-
-  foo<T>(coroutine: Coroutine<T>): CancelFunction {
     this.resume(coroutine, { value: undefined });
     return () => {
       // if there isn't a cancel callback for the coroutine, it was canceled or had completed
@@ -194,11 +186,10 @@ export class Scope {
     return (resultCallback) => {
       const cancelCallbacks: Array<CancelFunction | void | null> = [];
 
-      for (let i = 0; i < suspenders.length; i++) {
-        const k = i;
-        cancelCallbacks.push(suspenders[k](
+      for (let [index, suspender] of suspenders.entries()) {
+        cancelCallbacks.push(suspender(
           (value) => {
-            cancelCallbacks[k] = null;
+            cancelCallbacks[index] = null;
 
             // cancel all other suspenders
             for (let m = 0; m < suspenders.length; m++) {
@@ -439,7 +430,7 @@ export class Scope {
     };
   }
 
-  private cancelWithError(error: unknown) {
+  cancelWithError(error: unknown) {
     if (!this.isCancelable || this.isCanceled) {
       return;
     }

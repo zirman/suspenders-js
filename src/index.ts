@@ -6,13 +6,11 @@ export {
   Coroutine,
   CoroutineFactory,
   CoroutineSuspender,
-} from "./Types.js";
+} from "./Types";
 
-export { ScopeFinishingError, FlowConsumedError } from "./Errors.js";
+export { ScopeFinishingError, FlowConsumedError } from "./Errors";
 
-export { Scope } from "./Scope.js";
-export { Flow } from "./Flow.js";
-export { Channel } from "./Channel.js";
-export { StateSubject } from "./StateSubject.js";
-export { EventSubject } from "./EventSubject.js";
-export { suspend, suspendPromise, wait, httpGet } from "./Util.js";
+export { Scope } from "./Scope";
+export { Flow, flowOf, StateSubject, EventSubject, SharedEventFlow, SharedStateFlow } from "./Flow";
+export { Channel } from "./Channel";
+export { suspend, suspendPromise, wait, httpGet } from "./Util";

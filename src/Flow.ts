@@ -1,10 +1,8 @@
-import { Channel } from "./Channel.js";
-import { FlowConsumedError } from "./Errors.js";
-import { Scope } from "./Scope.js";
-import { SharedEventFlow } from "./SharedEventFlow.js";
-import { SharedStateFlow } from "./SharedStateFlow.js";
-import { CancelFunction, Coroutine, CoroutineFactory, Observer, Suspender } from "./Types.js";
-import { suspend } from "./Util.js";
+import { Channel } from "./Channel";
+import { FlowConsumedError } from "./Errors";
+import { Scope } from "./Scope";
+import { CancelFunction, CoroutineFactory, Observer, Suspender } from "./Types";
+import { suspend } from "./Util";
 
 /**
  * Abstract class for emitting multiple values. Normally, a flow is cold and doesn't start producing
@@ -315,6 +313,10 @@ class TransformLatestFlow<T, R> extends Flow<R> {
   }
 
   addObserver(scope: Scope, observer: Observer<R>): void {
+    if (this.observer !== null) {
+      throw new FlowConsumedError();
+    }
+
     this.observer = observer;
     this.cancel = scope.transformLatest(this.flow, this.f, observer);
   }
@@ -324,6 +326,180 @@ class TransformLatestFlow<T, R> extends Flow<R> {
       this.cancel?.call(null);
     } else {
       throw new FlowConsumedError();
+    }
+  }
+}
+
+class FlowOf<T> extends Flow<T> {
+  private observer: Observer<T> | null = null;
+  private cancel: CancelFunction | null = null;
+
+  constructor(
+    private factory: (observer: Observer<T>) => CoroutineFactory<void>,
+  ) {
+    super();
+  }
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    if (this.observer !== null) {
+      throw new FlowConsumedError();
+    }
+
+    this.observer = observer;
+    this.cancel = scope.launch(this.factory(observer));
+  }
+
+  removeObserver(observer: Observer<T>): void {
+    if (this.observer === observer) {
+      this.cancel!();
+    } else {
+      throw new FlowConsumedError();
+    }
+  }
+}
+
+export const flowOf = <T>(factory: (observer: Observer<T>) => CoroutineFactory<void>): Flow<T> =>
+  new FlowOf(factory);
+
+class FlowOfValues<T> extends Flow<T> {
+  private values: Array<T>;
+
+  constructor(...args: Array<T>) {
+    super();
+    this.values = args;
+  }
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    for (const value of this.values) {
+      observer.emit(value);
+    }
+  }
+
+  removeObserver(observer: Observer<T>): void {
+  }
+}
+
+export const flowOfValues = <T>(...args: Array<T>): Flow<T> =>
+  new FlowOfValues(...args);
+
+/**
+ * Starts observing a upstream flow and shares received values to downstream observers.
+ * SharedStateFlow replay the last emitted value to new observers.
+ */
+export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
+  private observers = new Set<Observer<T>>();
+  private last: { value: T } | null = null;
+
+  constructor(private flow: Flow<T>) {
+    super();
+    this.flow.addObserver(Scope.nonCanceling, this);
+  }
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    this.observers.add(observer);
+
+    if (this.last !== null) {
+      observer.emit(this.last.value);
+    }
+  }
+
+  removeObserver(observer: Observer<T>): void {
+    this.observers.delete(observer);
+  }
+
+  emit(value: T): void {
+    this.last = { value };
+
+    for (const observer of this.observers) {
+      observer.emit(value);
+    }
+  }
+}
+
+/**
+ * EventSubjects update their observers when there is a new event. Previously emitted values are not
+ * replayed on new observers. To replay the last emitted value, use StateSubject. Subjects are hot
+ * and can be shared with multipler observers. New flows that observe subjects start cold.
+ */
+export class EventSubject<T> extends Flow<T> implements Observer<T> {
+  private observers: Set<Observer<T>> = new Set();
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    this.observers.add(observer);
+  }
+
+  removeObserver(observer: Observer<T>): void {
+    this.observers.delete(observer);
+  }
+
+  /**
+   * Emits a value to the observer.
+   * @param value
+   */
+  emit(value: T): void {
+    for (const observer of this.observers) {
+      observer.emit(value);
+    }
+  }
+}
+
+/**
+ * StateSubject always have a value. When new observers are added, the last emitted value is
+ * replayed. This is generally used used for hot observables like the mouse position. Subjects are
+ * hot and can be shared with multipler observers. New flows that observe subjects start cold.
+ */
+export class StateSubject<T> extends Flow<T> implements Observer<T> {
+  private observers: Set<Observer<T>> = new Set()
+
+  constructor(public value: T) {
+    super();
+  }
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    this.observers.add(observer);
+    observer.emit(this.value);
+  }
+
+  removeObserver(observer: Observer<T>): void {
+    this.observers.delete(observer);
+  }
+
+  emit(value: T): void {
+    this.value = value;
+
+    for (const observer of this.observers) {
+      observer.emit(value);
+    }
+  }
+
+  get(): T {
+    return this.value;
+  }
+}
+
+/**
+ * Starts observing a upstream flow and shares received values to downstream observers.
+ * SharedEventFlow doesn't replay any past emitted values.
+ */
+export class SharedEventFlow<T> extends Flow<T> implements Observer<T> {
+  private observers = new Set<Observer<T>>();
+
+  constructor(private flow: Flow<T>) {
+    super();
+    this.flow.addObserver(Scope.nonCanceling, this);
+  }
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    this.observers.add(observer);
+  }
+
+  removeObserver(observer: Observer<T>): void {
+    this.observers.delete(observer);
+  }
+
+  emit(value: T): void {
+    for (const observer of this.observers) {
+      observer.emit(value);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { CoroutineSuspender, Suspender } from "./Types.js";
+import { CoroutineSuspender, Suspender } from "./Types";
 
 /**
  * Suspends the current coroutine until the suspender results with a value/error or is canceled.
