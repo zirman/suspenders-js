@@ -26,13 +26,16 @@ export class Channel<T> {
 
     // check for a queued value
     if (valueCallback !== undefined) {
-      resultCallback({ value: valueCallback[0] });
       const senderSuccessCallback = valueCallback[1];
+      // resume sender first to get round robin order
 
-      // resume producer if suspended
+      // resume sender if suspended
       if (senderSuccessCallback !== undefined) {
         senderSuccessCallback({ value: undefined });
       }
+
+      // resume receiver
+      resultCallback({ value: valueCallback[0] });
 
       // count how many suspended senders can be resumed to fill buffer to max
       // const resumeCount =
