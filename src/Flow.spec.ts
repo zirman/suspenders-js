@@ -3,8 +3,8 @@ import { flowOf, flowOfValues } from "./Flow";
 import { Scope } from "./Scope";
 import { suspend, wait } from "./Util";
 
-describe("scope error callback is called when an error occurs in a flow", () => {
-  it("throwing error in flowOfValues().map() calls scope error callback", (done) => {
+describe(`scope error callback is called when an error occurs in a flow`, () => {
+  it(`throwing error in flowOfValues().map() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
@@ -12,7 +12,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOfValues().filter() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().filter() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
@@ -20,7 +20,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOfValues().flatMap() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().flatMap() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
@@ -28,7 +28,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOfValues().onEach() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().onEach() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
@@ -36,7 +36,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOfValues().collect() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().collect() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     scope.launch(function*() {
@@ -45,7 +45,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
     });
   });
 
-  it("throwing error in flowOfValues().collectLatest() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().collectLatest() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     scope.launch(function*() {
@@ -54,7 +54,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
     });
   });
 
-  it("throwing error in flowOfValues().transform() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().transform() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
@@ -62,7 +62,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOfValues().transformLatest() calls scope error callback", (done) => {
+  it(`throwing error in flowOfValues().transformLatest() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
@@ -70,7 +70,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("parent scope error callback is called when child scope errors", (done) => {
+  it(`parent scope error callback is called when child scope errors`, (done) => {
     const parent = new Scope({ errorCallback: () => { done(); }});
     const scope = new Scope({ parent });
 
@@ -79,14 +79,14 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf() calls scope error callback", (done) => {
+  it(`throwing error in flowOf() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf(() => function*() { throw new Error(); })
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf().map() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().map() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((observer) => function*() { observer.emit(null) })
@@ -94,7 +94,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf().filter() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().filter() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((observer) => function*() { observer.emit(null) })
@@ -102,7 +102,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf().flatMap() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().flatMap() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((observer) => function*() { observer.emit(null) })
@@ -110,7 +110,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf().onEach() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().onEach() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((observer) => function*() { observer.emit(null) })
@@ -118,7 +118,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf().collect() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().collect() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     scope.launch(function* () {
@@ -127,7 +127,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
     });
   });
 
-  it("throwing error in flowOf().collectLatest() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().collectLatest() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     scope.launch(function* () {
@@ -136,7 +136,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
     });
   });
 
-  it("throwing error in flowOf().transform() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().transform() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((observer) => function*() { observer.emit(null) })
@@ -144,7 +144,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("throwing error in flowOf().transformLatest() calls scope error callback", (done) => {
+  it(`throwing error in flowOf().transformLatest() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((observer) => function*() { observer.emit(null) })
@@ -152,7 +152,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       .launchIn(scope);
   });
 
-  it("race cancels slower coroutine 1", (done) => {
+  it(`race cancels slower coroutine 1`, (done) => {
     new Scope({ errorCallback: (error) => { done(error); }})
       .launch(function* () {
         let finallyCalled = false
@@ -184,7 +184,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       });
   });
 
-  it("race cancels slower coroutine 2", (done) => {
+  it(`race cancels slower coroutine 2`, (done) => {
     new Scope({ errorCallback: (error) => { done(error); }})
       .launch(function* () {
         let finallyCalled = false
@@ -194,6 +194,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
             try {
               yield wait(5);
               done(`this should not run`);
+              this.cancel();
               return 1;
             } finally {
               finallyCalled = true;
@@ -215,7 +216,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
       });
   });
 
-  it("channel send/receive messages", (done) => {
+  it(`channel send/receive messages`, (done) => {
     const channel = new Channel<number>();
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
@@ -237,7 +238,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
     });
   });
 
-  it("channel multiple receiver round robin order", (done) => {
+  it(`channel multiple receiver round robin order`, (done) => {
     const channel = new Channel<number>();
 
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
@@ -302,7 +303,7 @@ describe("scope error callback is called when an error occurs in a flow", () => 
     });
   });
 
-  it("channel multiple sender round robin order", (done) => {
+  it(`channel multiple sender round robin order`, (done) => {
     const channel = new Channel<number>();
 
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
