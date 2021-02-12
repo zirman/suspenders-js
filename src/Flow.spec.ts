@@ -361,4 +361,34 @@ describe(`scope error callback is called when an error occurs in a flow`, () => 
       }
     });
   });
+
+  it(`channel buffer single message`, (done) => {
+    const channel = new Channel<number>({ bufferSize: 1 });
+
+    const scope = new Scope({ errorCallback: (error) => { done(error); }});
+
+    scope.launch(function* () {
+      yield channel.send(0);
+      done();
+      this.cancel();
+      yield channel.send(1);
+    });
+  });
+
+  it(`channel receiving buffered message resumes suspended sender`, (done) => {
+    const channel = new Channel<number>({ bufferSize: 1 });
+
+    const scope = new Scope({ errorCallback: (error) => { done(error); }});
+
+    scope.launch(function* () {
+      yield channel.send(0);
+      yield channel.send(1);
+      done();
+      this.cancel();
+    });
+
+    scope.launch(function* () {
+      yield channel.receive;
+    });
+  });
 });

@@ -38,20 +38,25 @@ export class Channel<T> {
       resultCallback({ value: valueCallback[0] });
 
       // count how many suspended senders can be resumed to fill buffer to max
-      // const resumeCount =
-      //   this.bufferSize - this.buffer
-      //     .reduce((x, [, callback]) => x + (callback === undefined ? 0 : 1), 0);
+      let resumeCount = 0;
 
-      // const foo = 0;
-      // for (let i = 0; i < this.buffer; i++) {
-      //   //const sendSuccessCallback = this.buffer[i][1];
+      let index = 0;
+      for (let index = 0; index < this.buffer.length; index++) {
+        if (resumeCount >= this.bufferSize) {
+          break;
+        }
 
-      //   if (sendSuccessCallback === undefined) {
-      //     bufferCount++;
-      //     //sendSuccessCallback({ value: undefined });
-      //     //this.buffer[i][1] = undefined;
-      //   }
-      // }
+        const pair = this.buffer[index]!
+        const senderSuccessCallback = pair[1];
+
+        // resumes sender by buffering it's value
+        if (senderSuccessCallback !== undefined) {
+          senderSuccessCallback({ value: undefined });
+          pair[1] = undefined;
+        }
+
+        resumeCount++;
+      }
 
       return;
     } else {
