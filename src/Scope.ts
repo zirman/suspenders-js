@@ -74,15 +74,6 @@ export class Scope {
     }
   }
 
-  promiseAsync<T>(promise: Promise<T>): Suspender<T> {
-    return this.async((resultCallback) => {
-      promise.then(
-        (value) => { resultCallback({ value }); },
-        (error) => { resultCallback({ tag: `error`, error }); },
-      );
-    });
-  }
-
   /**
    * Starts the suspender but doesn't wait for it's result. Returns a new suspender that returns the
    * result.

@@ -33,6 +33,10 @@ export function wait(time: number): Suspender<void> {
   };
 }
 
+export function awaitCancelation(): Suspender<void> {
+  return () => {};
+}
+
 export function httpGet(url: string): Suspender<string> {
   return (resultCallback) => {
     const xhttp = new XMLHttpRequest();

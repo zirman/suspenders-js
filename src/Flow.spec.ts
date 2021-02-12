@@ -1,7 +1,7 @@
 import { Channel } from "./Channel";
 import { flowOf, flowOfValues } from "./Flow";
 import { Scope } from "./Scope";
-import { suspend, wait } from "./Util";
+import { awaitCancelation, suspend, wait } from "./Util";
 
 describe(`scope error callback is called when an error occurs in a flow`, () => {
   it(`throwing error in flowOfValues().map() calls scope error callback`, (done) => {
@@ -390,5 +390,49 @@ describe(`scope error callback is called when an error occurs in a flow`, () => 
     scope.launch(function* () {
       yield channel.receive;
     });
+  });
+
+  it(`sibling coroutine is canceled when scope is canceled`, (done) => {
+    const scope = new Scope();
+
+    scope.launch(function* () {
+      try {
+        yield wait(5);
+      } finally {
+        done();
+      }
+    });
+
+    scope.launch(function* () {
+      throw new Error();
+    });
+  });
+
+  it(`coroutine is canceled when scope is canceled`, (done) => {
+    const scope = new Scope();
+
+    scope.launch(function* () {
+      try {
+        yield awaitCancelation();
+      } finally {
+        done();
+      }
+    });
+
+    scope.cancel();
+  });
+
+  it(`coroutine is canceled when scope is canceled`, (done) => {
+    const scope = new Scope();
+
+    const x = scope.launch(function* () {
+      try {
+        yield wait(Infinity);
+      } finally {
+        done();
+      }
+    });
+
+    x();
   });
 });
