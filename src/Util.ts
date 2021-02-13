@@ -41,11 +41,11 @@ export function httpGet(url: string): Suspender<string> {
   return (resultCallback) => {
     const xhttp = new XMLHttpRequest();
 
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
+    xhttp.onloadend = function() {
+      if (this.status === 200) {
         resultCallback({ value: this.responseText });
       } else {
-        resultCallback({ tag: `error`, error: new Error(`code: ${this.status}`) });
+        resultCallback({ tag: `error`, error: new Error(`code: ${this.status} text: ${this.statusText}`) });
       }
     };
 

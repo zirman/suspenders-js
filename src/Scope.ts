@@ -24,17 +24,20 @@ export class Scope {
   private parent?: Scope
   private errorCallback?: (error: unknown, scope: Scope) => void
 
-  constructor(args?: {
+  constructor(options?: {
     parent?: Scope,
     errorCallback?: (error: unknown, scope: Scope) => void,
-    isCancelable?: boolean
+    isCancelable?: boolean,
   }) {
-    this.parent = args?.parent;
+    this.parent = options?.parent;
     this?.parent?.subscopes?.add(this);
-    this.errorCallback = args?.errorCallback;
-    this.isCancelable = args?.isCancelable ?? true;
+    this.errorCallback = options?.errorCallback;
+    this.isCancelable = options?.isCancelable ?? true;
   }
 
+  /**
+   * Returns true if scope is not canceled.
+   */
   isActive(): boolean {
     return !this.isCanceled;
   }

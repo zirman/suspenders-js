@@ -1,4 +1,4 @@
-import { Observer, ResultCallback, Suspender } from "./Types";
+import { ResultCallback, Suspender } from "./Types";
 
 /**
  * Channels are used to send and receive messages between coroutines. Channels can be buffered so
@@ -11,8 +11,8 @@ export class Channel<T> {
   private buffer: Array<[T, ResultCallback<void> | void]> = []
   private bufferSize: number
 
-  constructor(args?: { bufferSize?: number }) {
-    this.bufferSize = args?.bufferSize ?? 0;
+  constructor(options?: { bufferSize?: number }) {
+    this.bufferSize = options?.bufferSize ?? 0;
   }
 
   /**
