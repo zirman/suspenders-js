@@ -52,6 +52,7 @@ export class Scope {
     this.checkIfFinishing();
     const coroutine = factory.call(this);
     this.resume(coroutine, { value: undefined });
+
     return () => {
       // if there isn't a cancel callback for the coroutine, it was canceled or had completed
       this.cancelCallbacks.get(coroutine)?.call(undefined);
@@ -60,7 +61,8 @@ export class Scope {
 
   /**
    * Cancels all coroutines in this scope. All pending suspenders are canceled and all active
-   * coroutines finally block is called.
+   * coroutines finally block is called. If their finally block suspends, they are migrated to a
+   * non-canceling scope.
    */
   cancel(): void {
     if (!this.isCancelable || this.isCanceled) {
@@ -88,31 +90,26 @@ export class Scope {
    * @return {Suspender<T>}
    */
   async<T>(suspender: Suspender<T>): Suspender<T> {
-    // TODO: cancel async suspenders on scope/coroutine canceled
     this.checkIfFinishing();
-    let result: Result<T>;
-    let haveCallback = false;
-    let resultCallback: ResultCallback<T>;
-
-    const cancelCallback = suspender(
-      (res) => {
-        if (haveCallback) {
-          resultCallback(res);
-        } else {
-          result = res;
-        }
-      }
-    );
+    let result: Result<T> | undefined;
+    let resultCallback: ResultCallback<T> | undefined;
 
     return (resCallback) => {
       if (result !== undefined) {
         resCallback(result);
       } else {
         resultCallback = resCallback;
-        haveCallback = true;
       }
 
-      return cancelCallback;
+      return suspender(
+        (res) => {
+          if (resultCallback !== undefined) {
+            resultCallback(res);
+          } else {
+            result = res;
+          }
+        }
+      );
     };
   }
 
@@ -495,11 +492,11 @@ export class Scope {
     flow: Flow<T>,
     factory: (value: T) => CoroutineFactory<void>,
   ): Suspender<void> {
-    let coroutine: Coroutine<void> | null = null;
+    let coroutine: Coroutine<void>;
 
     return () => {
       const observer = new ObserverFunction<T>((value) => {
-        if (coroutine !== null) {
+        if (coroutine !== undefined) {
           this.cancelCallbacks.get(coroutine)?.call(null);
         }
 
@@ -512,7 +509,7 @@ export class Scope {
       return () => {
         flow.removeObserver(observer);
 
-        if (coroutine !== null) {
+        if (coroutine !== undefined) {
           this.cancelCallbacks.get(coroutine)?.call(null);
         }
       };
@@ -524,10 +521,10 @@ export class Scope {
     factory: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
     observer: Observer<R>,
   ): CancelFunction {
-    let coroutine: Coroutine<void> | null = null;
+    let coroutine: Coroutine<void>;
 
     const internalObserver = new ObserverFunction<T>((value) => {
-      if (coroutine !== null) {
+      if (coroutine !== undefined) {
         this.cancelCallbacks.get(coroutine)?.call(null);
       }
 
@@ -540,7 +537,7 @@ export class Scope {
     return () => {
       flow.removeObserver(internalObserver);
 
-      if (coroutine !== null) {
+      if (coroutine !== undefined) {
         this.cancelCallbacks.get(coroutine)?.call(null);
       }
     };

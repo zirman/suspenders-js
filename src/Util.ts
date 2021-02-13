@@ -45,7 +45,10 @@ export function httpGet(url: string): Suspender<string> {
       if (this.status === 200) {
         resultCallback({ value: this.responseText });
       } else {
-        resultCallback({ tag: `error`, error: new Error(`code: ${this.status} text: ${this.statusText}`) });
+        resultCallback({
+          tag: `error`,
+          error: new Error(`code: ${this.status} text: ${this.statusText}`)
+        });
       }
     };
 

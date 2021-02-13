@@ -102,6 +102,11 @@ export abstract class Flow<T> {
     return new TransformFlow(this, transformer);
   }
 
+  /**
+   * Errors thrown upstream are caught and passed into coroutine factory. Resumes sending values
+   * emitted to observer.
+   * @param factory
+   */
   catch(factory: (error: unknown, observer: Observer<T>) => CoroutineFactory<void>): Flow<T> {
     return new TransformCatch(this, factory);
   }
@@ -119,14 +124,14 @@ export abstract class Flow<T> {
 }
 
 class MapFlow<T, R> extends Flow<R> implements Observer<T> {
-  private observer: Observer<R> | null = null;
+  private observer?: Observer<R>;
 
   constructor(private flow: Flow<T>, private mapper: (value: T) => R) {
     super();
   }
 
   addObserver(scope: Scope, observer: Observer<R>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -143,7 +148,7 @@ class MapFlow<T, R> extends Flow<R> implements Observer<T> {
   }
 
   emit(value: T) {
-    if (this.observer === null) {
+    if (this.observer === undefined) {
       throw new FlowConsumedError();
     }
 
@@ -152,14 +157,14 @@ class MapFlow<T, R> extends Flow<R> implements Observer<T> {
 }
 
 class FilterFlow<T> extends Flow<T> implements Observer<T> {
-  private observer: Observer<T> | null = null;
+  private observer?: Observer<T>;
 
   constructor(private flow: Flow<T>, private predicate: (value: T) => boolean) {
     super();
   }
 
   addObserver(scope: Scope, observer: Observer<T>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -176,7 +181,7 @@ class FilterFlow<T> extends Flow<T> implements Observer<T> {
   }
 
   emit(value: T): void {
-    if (this.observer === null) {
+    if (this.observer === undefined) {
       throw new FlowConsumedError();
     }
 
@@ -187,15 +192,15 @@ class FilterFlow<T> extends Flow<T> implements Observer<T> {
 }
 
 class FlatMapFlow<T, R> extends Flow<R> implements Observer<T> {
-  private scope: Scope | null = null;
-  private observer: Observer<R> | null = null;
+  private scope?: Scope;
+  private observer?: Observer<R>;
 
   constructor(private flow: Flow<T>, private binder: (value: T) => Flow<R>) {
     super();
   }
 
   addObserver(scope: Scope, observer: Observer<R>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -213,7 +218,7 @@ class FlatMapFlow<T, R> extends Flow<R> implements Observer<T> {
   }
 
   emit(value: T): void {
-    if (this.observer === null || this.scope === null) {
+    if (this.observer === undefined || this.scope === undefined) {
       throw new FlowConsumedError();
     }
 
@@ -222,14 +227,14 @@ class FlatMapFlow<T, R> extends Flow<R> implements Observer<T> {
 }
 
 class OnEachFlow<T> extends Flow<T> implements Observer<T> {
-  private observer: Observer<T> | null = null;
+  private observer?: Observer<T>;
 
   constructor(private flow: Flow<T>, private f: (value: T) => void) {
     super();
   }
 
   addObserver(scope: Scope, observer: Observer<T>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -246,7 +251,7 @@ class OnEachFlow<T> extends Flow<T> implements Observer<T> {
   }
 
   emit(value: T): void {
-    if (this.observer === null) {
+    if (this.observer === undefined) {
       throw new FlowConsumedError();
     }
 
@@ -256,9 +261,9 @@ class OnEachFlow<T> extends Flow<T> implements Observer<T> {
 }
 
 class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
-  private scope: Scope | null = null;
-  private observer: Observer<R> | null = null;
-  private receiverChannel: Channel<T> | null = null;
+  private scope?: Scope;
+  private observer?: Observer<R>;
+  private receiverChannel?: Channel<T>;
 
   constructor(
     private flow: Flow<T>,
@@ -268,7 +273,7 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
   }
 
   addObserver(scope: Scope, observer: Observer<R>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -296,7 +301,7 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
   }
 
   emit(value: T): void {
-    if (this.receiverChannel === null) {
+    if (this.receiverChannel === undefined) {
       throw new FlowConsumedError();
     }
 
@@ -306,8 +311,7 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
 }
 
 class TransformCatch<T> extends Flow<T> implements Observer<T> {
-  private subscope: Scope | null = null;
-  private observer: Observer<T> | null = null;
+  private observer?: Observer<T>;
 
   constructor(
     private flow: Flow<T>,
@@ -317,17 +321,18 @@ class TransformCatch<T> extends Flow<T> implements Observer<T> {
   }
 
   addObserver(scope: Scope, observer: Observer<T>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
     this.observer = observer;
 
-    const subscope = new Scope({ errorCallback: (error) => {
-      scope.launch(this.factory(error, this));
-    }});
-
-    this.flow.addObserver(subscope, this);
+    this.flow.addObserver(
+      new Scope({ errorCallback: (error) => {
+        scope.launch(this.factory(error, this));
+      }}),
+      this,
+    );
   }
 
   removeObserver(observer: Observer<T>): void {
@@ -339,7 +344,7 @@ class TransformCatch<T> extends Flow<T> implements Observer<T> {
   }
 
   emit(value: T): void {
-    if (this.observer === null) {
+    if (this.observer === undefined) {
       throw new Error();
     }
 
@@ -348,8 +353,8 @@ class TransformCatch<T> extends Flow<T> implements Observer<T> {
 }
 
 class TransformLatestFlow<T, R> extends Flow<R> {
-  private observer: Observer<R> | null = null;
-  private cancel: CancelFunction | null = null;
+  private observer?: Observer<R>;
+  private cancel?: CancelFunction;
 
   constructor(
     private flow: Flow<T>,
@@ -359,7 +364,7 @@ class TransformLatestFlow<T, R> extends Flow<R> {
   }
 
   addObserver(scope: Scope, observer: Observer<R>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -377,8 +382,8 @@ class TransformLatestFlow<T, R> extends Flow<R> {
 }
 
 class FlowOf<T> extends Flow<T> {
-  private observer: Observer<T> | null = null;
-  private cancel: CancelFunction | null = null;
+  private observer?: Observer<T>;
+  private cancel?: CancelFunction;
 
   constructor(
     private factory: (observer: Observer<T>) => CoroutineFactory<void>,
@@ -387,7 +392,7 @@ class FlowOf<T> extends Flow<T> {
   }
 
   addObserver(scope: Scope, observer: Observer<T>): void {
-    if (this.observer !== null) {
+    if (this.observer !== undefined) {
       throw new FlowConsumedError();
     }
 
@@ -434,7 +439,7 @@ export const flowOfValues = <T>(...args: Array<T>): Flow<T> =>
  */
 export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
   private observers = new Set<Observer<T>>();
-  private last: { value: T } | null = null;
+  private last?: { value: T };
 
   constructor(private flow: Flow<T>) {
     super();
@@ -444,7 +449,7 @@ export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
   addObserver(scope: Scope, observer: Observer<T>): void {
     this.observers.add(observer);
 
-    if (this.last !== null) {
+    if (this.last !== undefined) {
       observer.emit(this.last.value);
     }
   }
