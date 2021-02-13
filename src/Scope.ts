@@ -35,6 +35,10 @@ export class Scope {
     this.isCancelable = args?.isCancelable ?? true;
   }
 
+  isActive(): boolean {
+    return !this.isCanceled;
+  }
+
   /**
    * Starts a coroutine in this scope. Scope.call() is the preferred method of calling a coroutine
    * from a running coroutine when blocking on it's result.

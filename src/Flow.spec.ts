@@ -422,17 +422,36 @@ describe(`scope error callback is called when an error occurs in a flow`, () => 
     scope.cancel();
   });
 
-  it(`coroutine is canceled when scope is canceled`, (done) => {
+  it(`canceling a coroutine doesn't cancel it's scope`, (done) => {
     const scope = new Scope();
 
-    const x = scope.launch(function* () {
-      try {
-        yield wait(Infinity);
-      } finally {
-        done();
-      }
+    const cancelFunction = scope.launch(function* () {
+      yield awaitCancelation();
     });
 
-    x();
+    cancelFunction();
+
+    scope.launch(function* () {
+      done();
+    });
+  });
+
+  it(`catching a flow resumes in catch coroutine`, (done) => {
+    const scope = new Scope();
+
+    flowOf<number>((observer) => function*() {
+      observer.emit(0);
+      throw new Error();
+    })
+      .catch((error, observer) => function*() {
+        observer.emit(1);
+      })
+      .onEach((i) => {
+        if (scope.isActive() && i === 1) {
+          done();
+          scope.cancel();
+        }
+      })
+      .launchIn(scope);
   });
 });

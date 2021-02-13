@@ -102,6 +102,10 @@ export abstract class Flow<T> {
     return new TransformFlow(this, transformer);
   }
 
+  catch(factory: (error: unknown, observer: Observer<T>) => CoroutineFactory<void>): Flow<T> {
+    return new TransformCatch(this, factory);
+  }
+
   /**
    * Runs a coroutine on each value and emits values through observer. Cancels previous coroutine if
    * it has not completed.
@@ -298,6 +302,48 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
 
     // channel buffer is Infinite so we don't check for failure
     this.receiverChannel.trySend(value);
+  }
+}
+
+class TransformCatch<T> extends Flow<T> implements Observer<T> {
+  private subscope: Scope | null = null;
+  private observer: Observer<T> | null = null;
+
+  constructor(
+    private flow: Flow<T>,
+    private factory: (error: unknown, observer: Observer<T>) => CoroutineFactory<void>,
+  ) {
+    super();
+  }
+
+  addObserver(scope: Scope, observer: Observer<T>): void {
+    if (this.observer !== null) {
+      throw new FlowConsumedError();
+    }
+
+    this.observer = observer;
+
+    const subscope = new Scope({ errorCallback: (error) => {
+      scope.launch(this.factory(error, this));
+    }});
+
+    this.flow.addObserver(subscope, this);
+  }
+
+  removeObserver(observer: Observer<T>): void {
+    if (this.observer === observer) {
+      this.flow.removeObserver(this);
+    } else {
+      throw new FlowConsumedError();
+    }
+  }
+
+  emit(value: T): void {
+    if (this.observer === null) {
+      throw new Error();
+    }
+
+    this.observer.emit(value);
   }
 }
 
