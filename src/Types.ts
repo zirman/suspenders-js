@@ -11,6 +11,8 @@ export type Suspender<T> = (s: ResultCallback<T>) => (CancelFunction | void)
  */
 export type Result<T> = Readonly<{ tag: `error`, error: unknown } | { tag?: `value`, value: T }>
 
+export type Resume<T> = Readonly<{ tag: `finish` }> | Result<T>
+
 /**
  * Callback when async task resolves.
  */

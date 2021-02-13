@@ -1,7 +1,16 @@
 import { ScopeFinishingError } from "./Errors";
 import { Flow } from "./Flow";
 import { ObserverFunction } from "./ObserverFunction";
-import { CancelFunction, Coroutine, CoroutineFactory, Observer, Result, ResultCallback, Suspender } from "./Types";
+import {
+  CancelFunction,
+  Coroutine,
+  CoroutineFactory,
+  Observer,
+  Result,
+  ResultCallback,
+  Resume,
+  Suspender
+} from "./Types";
 
 /**
  * Scope is used to start groups of coroutines that are canceled together. If any coroutine in the
@@ -70,7 +79,7 @@ export class Scope {
     }
 
     this.isCanceled = true;
-    this.parent?.subscopes.delete(this);
+    this.parent?.subscopes?.delete(this);
 
     // cancel all subscopes
     for (const scope of this.subscopes) {
@@ -125,12 +134,9 @@ export class Scope {
     if (this.isCanceled) {
       return yield* Scope.nonCanceling.call<T>(factory);
     } else {
-      const scope = new Scope({ parent: this });
-      const suspender = scope.callAsync<T>(factory);
-      // isCanceled may have changed
-      if (!this.isCanceled) {
-        yield scope.finish();
-      }
+      const subscope = new Scope({ parent: this });
+      const suspender = subscope.callAsync<T>(factory);
+      yield subscope.finish();
       return (yield suspender) as T;
     }
   }
@@ -143,13 +149,12 @@ export class Scope {
    */
   callAsync<T>(factory: CoroutineFactory<T>): Suspender<T> {
     this.checkIfFinishing();
-    let result: Result<T>;
-    let haveCallback = false;
-    let resultCallback: ResultCallback<T>;
+    let result: Result<T> | undefined;
+    let resultCallback: ResultCallback<T> | undefined;
     const coroutine = factory.call(this);
 
     this.resume(coroutine, { value: undefined }, (res) => {
-      if (haveCallback) {
+      if (resultCallback !== undefined) {
         resultCallback(res);
       } else {
         result = res;
@@ -161,7 +166,6 @@ export class Scope {
         resCallback(result);
       } else {
         resultCallback = resCallback;
-        haveCallback = true;
       }
 
       return () => {
@@ -213,26 +217,29 @@ export class Scope {
   }
 
   /**
-   * Resumes a coroutine with result.
+   * Resumes a coroutine.
    * @param {Coroutine<T>} coroutine
-   * @param {Result<unknown>} result
+   * @param {Resume<unknown>} resume
    * @param {(x: T) => void | void} doneCallback
    */
   private resume<T>(
     coroutine: Coroutine<T>,
-    result: Result<unknown>,
+    resume: Resume<unknown>,
     resultCallback?: ResultCallback<T>,
   ) {
     try {
       const iteratorResult =
-        result.tag === `error`
-        ? coroutine.throw(result.error)
-        : coroutine.next(result.value);
+        resume.tag === `error`
+        ? coroutine.throw(resume.error)
+        : resume.tag === `finish`
+        ? coroutine.return(undefined as any)
+        : coroutine.next(resume.value);
 
       // coroutine completed without error
       if (iteratorResult.done === true) {
-        this.cancelCallbacks.delete(coroutine);
-        resultCallback?.call(undefined, { value: iteratorResult.value });
+        if (resume.tag !== `finish`) {
+          resultCallback?.call(undefined, { value: iteratorResult.value });
+        }
 
         if (this.isFinishing && this.cancelCallbacks.size === 0) {
           this.isFinished = true;
@@ -252,137 +259,27 @@ export class Scope {
           iteratorResult.value(
             (value) => {
               // checks if scope is not canceled and that other callbacks have not been called
-              if (!this.isCanceled && !wasCallbackCalled) {
+              if (!wasCallbackCalled) {
                 wasCallbackCalled = true;
+                this.cancelCallbacks.delete(coroutine);
                 this.resume(coroutine, value, resultCallback);
               }
-            }
+            },
           );
 
-        // check if suspender called a callback before returning
+        // check if suspender called callback before returning
         if (!wasCallbackCalled) {
           this.cancelCallbacks.set(coroutine, () => {
-            this.cancelCallbacks.delete(coroutine);
-
             if (!wasCallbackCalled) {
               wasCallbackCalled = true;
+              this.cancelCallbacks.delete(coroutine);
 
               if (cancelCallback !== undefined) {
                 cancelCallback();
               }
 
               // calls finally blocks of coroutine
-              try {
-                Scope.nonCanceling.resumeWithReturn(coroutine, undefined);
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // const result = coroutine.return(undefined as any);
-
-                // if (result.done !== true) {
-                //   // move to non-canceling scope
-                //   //console.log(`nonCanceling`);
-                //   result.value((result) => {
-                //     return;
-                //   });
-                //   Scope.nonCanceling.cancelCallbacks.set(coroutine, () => {
-                //     Scope.nonCanceling.cancelCallbacks.get(coroutine)?.call(undefined);
-                //   });
-                //   //Scope.nonCanceling.resume(coroutine, { value: result.value });
-                // }
-              } catch (error) {
-                console.error(`error in finally block ${error.stack}`);
-              }
-
-              if (this.isFinishing && this.cancelCallbacks.size === 0) {
-                this.isFinished = true;
-
-                for (const finishedCallback of this.finishedCallbacks) {
-                  finishedCallback({ value: undefined });
-                }
-
-                this.parent?.subscopes?.delete(this);
-              }
-            }
-          });
-        }
-      }
-    } catch (error) {
-      if (error instanceof ScopeFinishingError) {
-        console.error(error.stack);
-      } else {
-        this.cancelWithError(error);
-      }
-    }
-  }
-
-  private resumeWithReturn<T>(
-    coroutine: Coroutine<T>,
-    resultCallback?: ResultCallback<T>,
-  ) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const iteratorResult = coroutine.return(undefined as any);
-
-      // coroutine completed without error
-      if (iteratorResult.done === true) {
-        this.cancelCallbacks.delete(coroutine);
-        resultCallback?.call(undefined, { value: iteratorResult.value });
-
-        if (this.isFinishing && this.cancelCallbacks.size === 0) {
-          this.isFinished = true;
-
-          for (const finishedCallback of this.finishedCallbacks) {
-            finishedCallback({ value: undefined });
-          }
-
-          this.parent?.subscopes?.delete(this);
-        }
-      } else {
-        // ensures only one callback is called
-        let wasCallbackCalled = false;
-
-        // suspending coroutine on Suspender<T>
-        const cancelCallback =
-          iteratorResult.value(
-            (value) => {
-              // checks if scope is not canceled and that other callbacks have not been called
-              if (!this.isCanceled && !wasCallbackCalled) {
-                wasCallbackCalled = true;
-                this.resume(coroutine, value, resultCallback);
-              }
-            }
-          );
-
-        // check if suspender called a callback before returning
-        if (!wasCallbackCalled) {
-          this.cancelCallbacks.set(coroutine, () => {
-            this.cancelCallbacks.delete(coroutine);
-
-            if (!wasCallbackCalled) {
-              wasCallbackCalled = true;
-
-              if (cancelCallback !== undefined) {
-                cancelCallback();
-              }
-
-              // calls finally blocks of coroutine
-              try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const result = coroutine.return(undefined as any);
-
-                if (result.done !== true) {
-                  // move to non-canceling scope
-                  //console.log(`nonCanceling`);
-                  result.value((result) => {
-                    return;
-                  });
-                  Scope.nonCanceling.cancelCallbacks.set(coroutine, () => {
-                    Scope.nonCanceling.cancelCallbacks.get(coroutine)?.call(undefined);
-                  });
-                  //Scope.nonCanceling.resume(coroutine, { value: result.value });
-                }
-              } catch (error) {
-                console.error(`error in finally block ${error.stack}`);
-              }
+              Scope.nonCanceling.resume(coroutine, { tag: `finish` }, resultCallback);
 
               if (this.isFinishing && this.cancelCallbacks.size === 0) {
                 this.isFinished = true;
@@ -419,12 +316,24 @@ export class Scope {
         return;
       } else {
         this.isFinishing = true;
-        this.finishedCallbacks.add(() => { resultCallback({ value: undefined }); });
-        return () => { this.finishedCallbacks.delete(resultCallback); };
+
+        if (this.cancelCallbacks.size === 0) {
+          this.isFinished = true;
+          resultCallback({ value: undefined });
+          return;
+        } else {
+          const finishCallback = () => { resultCallback({ value: undefined }); };
+          this.finishedCallbacks.add(finishCallback);
+          return () => { this.finishedCallbacks.delete(finishCallback); };
+        }
       }
     };
   }
 
+  /**
+   * Cancels all coroutines in this scope and calls errorCallback. Bubbles error to parent.
+   * @param error
+   */
   cancelWithError(error: unknown) {
     if (!this.isCancelable || this.isCanceled) {
       return;
@@ -497,7 +406,7 @@ export class Scope {
     return () => {
       const observer = new ObserverFunction<T>((value) => {
         if (coroutine !== undefined) {
-          this.cancelCallbacks.get(coroutine)?.call(null);
+          this.cancelCallbacks.get(coroutine)?.call(undefined);
         }
 
         coroutine = factory(value).call(this);
@@ -510,12 +419,18 @@ export class Scope {
         flow.removeObserver(observer);
 
         if (coroutine !== undefined) {
-          this.cancelCallbacks.get(coroutine)?.call(null);
+          this.cancelCallbacks.get(coroutine)?.call(undefined);
         }
       };
     };
   }
 
+  /**
+   *
+   * @param flow
+   * @param factory
+   * @param observer
+   */
   transformLatest<T, R>(
     flow: Flow<T>,
     factory: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
@@ -525,7 +440,7 @@ export class Scope {
 
     const internalObserver = new ObserverFunction<T>((value) => {
       if (coroutine !== undefined) {
-        this.cancelCallbacks.get(coroutine)?.call(null);
+        this.cancelCallbacks.get(coroutine)?.call(undefined);
       }
 
       coroutine = factory(value, observer).call(this);
@@ -538,7 +453,7 @@ export class Scope {
       flow.removeObserver(internalObserver);
 
       if (coroutine !== undefined) {
-        this.cancelCallbacks.get(coroutine)?.call(null);
+        this.cancelCallbacks.get(coroutine)?.call(undefined);
       }
     };
   }

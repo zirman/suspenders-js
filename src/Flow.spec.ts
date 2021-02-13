@@ -1,6 +1,5 @@
 import { flowOf, flowOfValues } from "./Flow";
 import { Scope } from "./Scope";
-import { awaitCancelation, suspend, wait } from "./Util";
 
 describe(`Flow tests`, () => {
   it(`throwing error in flowOfValues().map() calls scope error callback`, (done) => {
