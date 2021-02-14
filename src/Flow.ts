@@ -1,7 +1,7 @@
 import { Channel } from "./Channel";
-import { FlowConsumedError } from "./Errors";
+import { FlowCompleteError, FlowConsumedError, FlowEmitError, FlowHasCompletedError, FlowRemoveObserverError } from "./Errors";
 import { Scope } from "./Scope";
-import { CancelFunction, CoroutineFactory, Observer, Suspender } from "./Types";
+import { CancelFunction, CoroutineFactory, Suspender, Observer, Consumer } from "./Types";
 import { suspend } from "./Util";
 
 /**
@@ -97,7 +97,7 @@ export abstract class Flow<T> {
    * @param transformer
    */
   transform<R>(
-    transformer: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
+    transformer: (value: T, consumer: Observer<R>) => CoroutineFactory<void>,
   ): Flow<R> {
     return new TransformFlow(this, transformer);
   }
@@ -107,7 +107,7 @@ export abstract class Flow<T> {
    * emitted to observer.
    * @param factory
    */
-  catch(factory: (error: unknown, observer: Observer<T>) => CoroutineFactory<void>): Flow<T> {
+  catch(factory: (error: unknown, consumer: Consumer<T>) => CoroutineFactory<void>): Flow<T> {
     return new TransformCatch(this, factory);
   }
 
@@ -117,7 +117,7 @@ export abstract class Flow<T> {
    * @param transformer
    */
   transformLatest<R>(
-    transformer: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
+    transformer: (value: T, consumer: Consumer<R>) => CoroutineFactory<void>,
   ): Flow<R> {
     return new TransformLatestFlow(this, transformer);
   }
@@ -125,6 +125,7 @@ export abstract class Flow<T> {
 
 class MapFlow<T, R> extends Flow<R> implements Observer<T> {
   private observer?: Observer<R>;
+  private hasCompleted = false;
 
   constructor(private flow: Flow<T>, private mapper: (value: T) => R) {
     super();
@@ -140,24 +141,42 @@ class MapFlow<T, R> extends Flow<R> implements Observer<T> {
   }
 
   removeObserver(observer: Observer<R>): void {
-    if (this.observer === observer) {
-      this.flow.removeObserver(this);
-    } else {
-      throw new FlowConsumedError();
+    if (this.observer !== observer) {
+      throw new FlowRemoveObserverError();
     }
+
+    this.flow.removeObserver(this);
   }
 
   emit(value: T) {
     if (this.observer === undefined) {
-      throw new FlowConsumedError();
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
     }
 
     this.observer.emit(this.mapper(value));
+  }
+
+  complete() {
+    if (this.observer === undefined) {
+      throw new FlowCompleteError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+    this.observer.complete();
   }
 }
 
 class FilterFlow<T> extends Flow<T> implements Observer<T> {
   private observer?: Observer<T>;
+  private hasCompleted = false;
 
   constructor(private flow: Flow<T>, private predicate: (value: T) => boolean) {
     super();
@@ -173,27 +192,45 @@ class FilterFlow<T> extends Flow<T> implements Observer<T> {
   }
 
   removeObserver(observer: Observer<T>): void {
-    if (this.observer === observer) {
-      this.flow.removeObserver(this);
-    } else {
-      throw new FlowConsumedError();
+    if (this.observer !== observer) {
+      throw new FlowRemoveObserverError();
     }
+
+    this.flow.removeObserver(this);
   }
 
   emit(value: T): void {
     if (this.observer === undefined) {
-      throw new FlowConsumedError();
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
     }
 
     if (this.predicate(value)) {
       this.observer.emit(value);
     }
   }
+
+  complete() {
+    if (this.observer === undefined) {
+      throw new FlowCompleteError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+    this.observer.complete();
+  }
 }
 
 class FlatMapFlow<T, R> extends Flow<R> implements Observer<T> {
   private scope?: Scope;
   private observer?: Observer<R>;
+  private hasCompleted = false;
 
   constructor(private flow: Flow<T>, private binder: (value: T) => Flow<R>) {
     super();
@@ -210,24 +247,42 @@ class FlatMapFlow<T, R> extends Flow<R> implements Observer<T> {
   }
 
   removeObserver(observer: Observer<R>): void {
-    if (this.observer === observer) {
-      this.flow.removeObserver(this);
-    } else {
-      throw new FlowConsumedError();
+    if (this.observer !== observer) {
+      throw new FlowRemoveObserverError();
     }
+
+    this.flow.removeObserver(this);
   }
 
   emit(value: T): void {
     if (this.observer === undefined || this.scope === undefined) {
-      throw new FlowConsumedError();
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
     }
 
     this.binder(value).addObserver(this.scope, this.observer);
+  }
+
+  complete() {
+    if (this.observer === undefined) {
+      throw new FlowCompleteError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+    this.observer.complete();
   }
 }
 
 class OnEachFlow<T> extends Flow<T> implements Observer<T> {
   private observer?: Observer<T>;
+  private hasCompleted = false;
 
   constructor(private flow: Flow<T>, private f: (value: T) => void) {
     super();
@@ -252,11 +307,27 @@ class OnEachFlow<T> extends Flow<T> implements Observer<T> {
 
   emit(value: T): void {
     if (this.observer === undefined) {
-      throw new FlowConsumedError();
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
     }
 
     this.f(value);
     this.observer.emit(value);
+  }
+
+  complete() {
+    if (this.observer === undefined) {
+      throw new FlowCompleteError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.observer.complete();
   }
 }
 
@@ -264,6 +335,7 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
   private scope?: Scope;
   private observer?: Observer<R>;
   private receiverChannel?: Channel<T>;
+  private hasCompleted = false;
 
   constructor(
     private flow: Flow<T>,
@@ -284,9 +356,11 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
     const receiverChannel = new Channel<T>({ bufferSize: Infinity });
     this.receiverChannel = receiverChannel;
     const f = this.f;
+    const transformFlow = this;
 
     this.scope.launch(function*() {
-      for (;;) {
+      // TODO complete if canceled with no items queued
+      while (!transformFlow.hasCompleted) {
         yield* this.call(f(yield* suspend(receiverChannel.receive), observer));
       }
     });
@@ -302,16 +376,33 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
 
   emit(value: T): void {
     if (this.receiverChannel === undefined) {
-      throw new FlowConsumedError();
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
     }
 
     // channel buffer is Infinite so we don't check for failure
     this.receiverChannel.trySend(value);
   }
+
+  complete() {
+    if (this.observer === undefined) {
+      throw new FlowCompleteError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+  }
 }
 
 class TransformCatch<T> extends Flow<T> implements Observer<T> {
   private observer?: Observer<T>;
+  private hasCompleted = false;
 
   constructor(
     private flow: Flow<T>,
@@ -345,10 +436,27 @@ class TransformCatch<T> extends Flow<T> implements Observer<T> {
 
   emit(value: T): void {
     if (this.observer === undefined) {
-      throw new Error();
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
     }
 
     this.observer.emit(value);
+  }
+
+  complete() {
+    if (this.observer === undefined) {
+      throw new FlowEmitError();
+    }
+
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+    this.observer.complete();
   }
 }
 
@@ -358,7 +466,7 @@ class TransformLatestFlow<T, R> extends Flow<R> {
 
   constructor(
     private flow: Flow<T>,
-    private f: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
+    private f: (value: T, consumer: Consumer<R>) => CoroutineFactory<void>,
   ) {
     super();
   }
@@ -409,7 +517,7 @@ class FlowOf<T> extends Flow<T> {
   }
 }
 
-export const flowOf = <T>(factory: (observer: Observer<T>) => CoroutineFactory<void>): Flow<T> =>
+export const flowOf = <T>(factory: (consumer: Consumer<T>) => CoroutineFactory<void>): Flow<T> =>
   new FlowOf(factory);
 
 class FlowOfValues<T> extends Flow<T> {
@@ -424,6 +532,8 @@ class FlowOfValues<T> extends Flow<T> {
     for (const value of this.values) {
       observer.emit(value);
     }
+
+    observer.complete();
   }
 
   removeObserver(observer: Observer<T>): void {
@@ -440,6 +550,7 @@ export const flowOfValues = <T>(...args: Array<T>): Flow<T> =>
 export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
   private observers = new Set<Observer<T>>();
   private last?: { value: T };
+  private hasCompleted = false;
 
   constructor(private flow: Flow<T>) {
     super();
@@ -452,6 +563,10 @@ export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
     if (this.last !== undefined) {
       observer.emit(this.last.value);
     }
+
+    if (this.hasCompleted) {
+      observer.complete();
+    }
   }
 
   removeObserver(observer: Observer<T>): void {
@@ -459,10 +574,26 @@ export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
   }
 
   emit(value: T): void {
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
     this.last = { value };
 
     for (const observer of this.observers) {
       observer.emit(value);
+    }
+  }
+
+  complete() {
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+
+    for (const observer of this.observers) {
+      observer.complete();
     }
   }
 }
@@ -472,7 +603,7 @@ export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
  * replayed on new observers. To replay the last emitted value, use StateSubject. Subjects are hot
  * and can be shared with multipler observers. New flows that observe subjects start cold.
  */
-export class EventSubject<T> extends Flow<T> implements Observer<T> {
+export class EventSubject<T> extends Flow<T> implements Consumer<T> {
   private observers: Set<Observer<T>> = new Set();
 
   addObserver(scope: Scope, observer: Observer<T>): void {
@@ -499,7 +630,7 @@ export class EventSubject<T> extends Flow<T> implements Observer<T> {
  * replayed. This is generally used used for hot observables like the mouse position. Subjects are
  * hot and can be shared with multipler observers. New flows that observe subjects start cold.
  */
-export class StateSubject<T> extends Flow<T> implements Observer<T> {
+export class StateSubject<T> extends Flow<T> implements Consumer<T> {
   private observers: Set<Observer<T>> = new Set()
 
   constructor(public value: T) {
@@ -534,6 +665,7 @@ export class StateSubject<T> extends Flow<T> implements Observer<T> {
  */
 export class SharedEventFlow<T> extends Flow<T> implements Observer<T> {
   private observers = new Set<Observer<T>>();
+  private hasCompleted = false;
 
   constructor(private flow: Flow<T>) {
     super();
@@ -549,8 +681,24 @@ export class SharedEventFlow<T> extends Flow<T> implements Observer<T> {
   }
 
   emit(value: T): void {
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
     for (const observer of this.observers) {
       observer.emit(value);
+    }
+  }
+
+  complete() {
+    if (this.hasCompleted) {
+      throw new FlowHasCompletedError();
+    }
+
+    this.hasCompleted = true;
+
+    for (const observer of this.observers) {
+      observer.complete();
     }
   }
 }

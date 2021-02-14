@@ -5,11 +5,12 @@ import {
   CancelFunction,
   Coroutine,
   CoroutineFactory,
-  Observer,
+  Consumer,
   Result,
   ResultCallback,
   Resume,
-  Suspender
+  Suspender,
+  Observer
 } from "./Types";
 
 /**
@@ -251,7 +252,7 @@ export class Scope {
           this.parent?.subscopes?.delete(this);
         }
       } else {
-        // ensures only one callback is called
+        // ensure only one callback is called
         let wasCallbackCalled = false;
 
         // suspending coroutine on Suspender<T>
@@ -375,14 +376,17 @@ export class Scope {
    * Processes value emitted by flow. Processing of last value is canceled if it has not completed
    * before a new value is emitted.
    * @param flow
-   * @param factory
+   * @param collector
    */
   collect<T>(
     flow: Flow<T>,
     collector: (value: T) => void,
   ): Suspender<void> {
-    return () => {
-      const observerFunction = new ObserverFunction(collector);
+    return (resultCallback) => {
+      const observerFunction = new ObserverFunction(collector, () => {
+        resultCallback({ value: undefined });
+      });
+
       flow.addObserver(this, observerFunction);
 
       return () => {
@@ -403,7 +407,7 @@ export class Scope {
   ): Suspender<void> {
     let coroutine: Coroutine<void>;
 
-    return () => {
+    return (resultCallback) => {
       const observer = new ObserverFunction<T>((value) => {
         if (coroutine !== undefined) {
           this.cancelCallbacks.get(coroutine)?.call(undefined);
@@ -411,6 +415,8 @@ export class Scope {
 
         coroutine = factory(value).call(this);
         this.resume(coroutine, { value: undefined });
+      }, () => {
+        resultCallback({ value: undefined });
       });
 
       flow.addObserver(this, observer);
@@ -426,31 +432,41 @@ export class Scope {
   }
 
   /**
-   *
+   * Processes value emitted by flow. Processing of last value is canceled if it has not completed
+   * before a new value is emitted.
    * @param flow
    * @param factory
    * @param observer
    */
   transformLatest<T, R>(
     flow: Flow<T>,
-    factory: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
+    factory: (value: T, observer: Consumer<R>) => CoroutineFactory<void>,
     observer: Observer<R>,
   ): CancelFunction {
     let coroutine: Coroutine<void>;
+    let hasCompleted = false;
 
-    const internalObserver = new ObserverFunction<T>((value) => {
-      if (coroutine !== undefined) {
-        this.cancelCallbacks.get(coroutine)?.call(undefined);
-      }
+    const downstreamObserver = new ObserverFunction<R>(
+      (value) => { observer.emit(value); },
+      () => { if (hasCompleted) { observer.complete(); } },
+    );
 
-      coroutine = factory(value, observer).call(this);
-      this.resume(coroutine, { value: undefined });
-    });
+    const upstreamObserver = new ObserverFunction<T>(
+      (value) => {
+        if (coroutine !== undefined) {
+          this.cancelCallbacks.get(coroutine)?.call(undefined);
+        }
 
-    flow.addObserver(this, internalObserver);
+        coroutine = factory(value, downstreamObserver).call(this);
+        this.resume(coroutine, { value: undefined });
+      },
+      () => { hasCompleted = true; },
+    );
+
+    flow.addObserver(this, upstreamObserver);
 
     return () => {
-      flow.removeObserver(internalObserver);
+      flow.removeObserver(upstreamObserver);
 
       if (coroutine !== undefined) {
         this.cancelCallbacks.get(coroutine)?.call(undefined);

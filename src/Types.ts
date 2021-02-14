@@ -39,8 +39,15 @@ export type CoroutineFactory<T> = (this: Scope) => Coroutine<T>
 export type CoroutineSuspender<T> = Generator<Suspender<T>, T, unknown>
 
 /**
- * Observer interface is implemented by objects that observe values emitted from an upstream Flow.
+ * Consumer interface used to emit values.
  */
-export interface Observer<T> {
+export interface Consumer<T> {
   emit(value: T): void
+}
+
+/**
+ * Observer interface is implemented by objects that observe upstream flows.
+ */
+export interface Observer<T> extends Consumer<T> {
+  complete(): void
 }

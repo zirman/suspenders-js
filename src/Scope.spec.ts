@@ -1,4 +1,6 @@
+import { flowOf } from "./Flow";
 import { Scope } from "./Scope";
+import { Consumer } from "./Types";
 import { awaitCancelation, suspend, suspendPromise, wait } from "./Util";
 
 describe(`Scope tests`, () => {
@@ -257,4 +259,38 @@ describe(`Scope tests`, () => {
 
     scope.cancel();
   });
+
+  // it(`completed coroutines are not longer referenced by scope`, (done) => {
+  //   const scope = new Scope({ errorCallback: (error) => { done(error); }});
+
+  //   scope.launch(function* () {
+  //     yield wait(1);
+  //   });
+
+  //   setTimeout(() => {
+  //     if (scope.cancelCallbacks.size === 0) {
+  //       done();
+  //     } else {
+  //       done(`scope still has reference to coroutine`);
+  //     }
+  //   }, 5);
+  // });
+
+  // it(`completed flows are not longer referenced by scope`, (done) => {
+  //   const scope = new Scope({ errorCallback: (error) => { done(error); }});
+
+  //   flowOf((observer: Observer<number>) => function*() {
+  //     observer.emit(1);
+  //     observer.emit(2);
+  //     observer.emit(3);
+  //   }).launchIn(scope);
+
+  //   setTimeout(() => {
+  //     if (scope.cancelCallbacks.size === 0) {
+  //       done();
+  //     } else {
+  //       done(`scope still has reference to coroutine`);
+  //     }
+  //   }, 5);
+  // });
 });
