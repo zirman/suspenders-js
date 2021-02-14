@@ -2,7 +2,7 @@ export {
   Suspender,
   Result,
   ResultCallback,
-  CancelFunction as CancelCallback,
+  CancelFunction,
   Coroutine,
   CoroutineFactory,
   CoroutineSuspender,

@@ -1,7 +1,19 @@
 import { Channel } from "./Channel";
-import { FlowCompleteError, FlowConsumedError, FlowEmitError, FlowHasCompletedError, FlowRemoveObserverError } from "./Errors";
+import {
+  FlowCompleteError,
+  FlowConsumedError,
+  FlowEmitError,
+  FlowHasCompletedError,
+  FlowRemoveObserverError
+} from "./Errors";
 import { Scope } from "./Scope";
-import { CancelFunction, CoroutineFactory, Suspender, Observer, Consumer } from "./Types";
+import {
+  CancelFunction,
+  CoroutineFactory,
+  Suspender,
+  Observer,
+  Consumer
+} from "./Types";
 import { suspend } from "./Util";
 
 /**
