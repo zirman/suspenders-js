@@ -66,9 +66,9 @@ import { Scope, Observer } from "suspenders-js";
 
 const scope = new Scope();
 
-flowOf((observer: Observer<number>) => function*() {
+flowOf((consumer: Consumer<number>) => function*() {
   for (let i = 1; i <= 200; i++) {
-    observer.emit(i);
+    consumer.emit(i);
   }
 })
   .filter(x => x % 2 === 1)
