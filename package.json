@@ -28,7 +28,8 @@
     "concurrent",
     "parallel",
     "functional reactive programming",
-    "structured concurrency"
+    "structured concurrency",
+    "kotlin coroutines"
   ],
   "author": "Robert Chrzanowski",
   "license": "Apache-2.0",

@@ -7,12 +7,12 @@ import { ResultCallback, Suspender } from "./Types";
  * come first served order.
  */
 export class Channel<T> {
-  private receiverSuspenders: Array<ResultCallback<T>> = []
-  private buffer: Array<[T, ResultCallback<void> | void]> = []
-  private bufferSize: number
+  private _receiverSuspenders: Array<ResultCallback<T>> = []
+  private _buffer: Array<[T, ResultCallback<void> | void]> = []
+  private _bufferSize: number
 
   constructor(options?: { bufferSize?: number }) {
-    this.bufferSize = options?.bufferSize ?? 0;
+    this._bufferSize = options?.bufferSize ?? 0;
   }
 
   /**
@@ -22,7 +22,7 @@ export class Channel<T> {
    * @param resultCallback
    */
   receive: Suspender<T> = (resultCallback) => {
-    const valueCallback = this.buffer.shift();
+    const valueCallback = this._buffer.shift();
 
     // check for a queued value
     if (valueCallback !== undefined) {
@@ -41,12 +41,12 @@ export class Channel<T> {
       let resumeCount = 0;
 
       let index = 0;
-      for (let index = 0; index < this.buffer.length; index++) {
-        if (resumeCount >= this.bufferSize) {
+      for (let index = 0; index < this._buffer.length; index++) {
+        if (resumeCount >= this._bufferSize) {
           break;
         }
 
-        const pair = this.buffer[index]!
+        const pair = this._buffer[index]!
         const senderSuccessCallback = pair[1];
 
         // resumes sender by buffering it's value
@@ -60,13 +60,13 @@ export class Channel<T> {
 
       return;
     } else {
-      this.receiverSuspenders.push(resultCallback);
+      this._receiverSuspenders.push(resultCallback);
 
       return () => {
-        const index = this.receiverSuspenders.findIndex((x)=> x === resultCallback);
+        const index = this._receiverSuspenders.findIndex((x)=> x === resultCallback);
 
         if (index !== -1) {
-          this.receiverSuspenders.splice(index, 1);
+          this._receiverSuspenders.splice(index, 1);
         }
       };
     }
@@ -81,29 +81,29 @@ export class Channel<T> {
    */
   send(value: T): Suspender<void> {
     return (resultCallback) => {
-      const receiver = this.receiverSuspenders.shift();
+      const receiver = this._receiverSuspenders.shift();
 
       if (receiver !== undefined) {
         // receiver was waiting for value
         receiver({ value });
         resultCallback({ value: undefined });
         return;
-      } else if (this.buffer.length < this.bufferSize) {
+      } else if (this._buffer.length < this._bufferSize) {
         // buffer value but don't block sender
         const valueCallback: [T, void] = [value, undefined];
-        this.buffer.push(valueCallback);
+        this._buffer.push(valueCallback);
         resultCallback({ value: undefined });
         return;
       } else {
         // block sender until receiver gets value
         const valueCallback: [T, ResultCallback<void>] = [value, resultCallback];
-        this.buffer.push(valueCallback);
+        this._buffer.push(valueCallback);
 
         return () => {
-          const index = this.buffer.findIndex((x) => x === valueCallback);
+          const index = this._buffer.findIndex((x) => x === valueCallback);
 
           if (index !== -1) {
-            this.buffer.splice(index, 1);
+            this._buffer.splice(index, 1);
           }
         };
       }
@@ -115,16 +115,16 @@ export class Channel<T> {
    * @param value
    */
   trySend(value: T): boolean {
-    const receiver = this.receiverSuspenders.shift();
+    const receiver = this._receiverSuspenders.shift();
 
     if (receiver !== undefined) {
       // receiver was waiting for value
       receiver({ value });
       return true;
-    } else if (this.buffer.length < this.bufferSize) {
+    } else if (this._buffer.length < this._bufferSize) {
       // buffer value
       const valueCallback: [T, void] = [value, undefined];
-      this.buffer.push(valueCallback);
+      this._buffer.push(valueCallback);
       return true;
     } else {
       return false;

@@ -1,7 +1,5 @@
-import { flowOf } from "./Flow";
 import { Scope } from "./Scope";
-import { Consumer } from "./Types";
-import { awaitCancelation, suspend, suspendPromise, wait } from "./Util";
+import { awaitCancelation, suspend, wait } from "./Util";
 
 describe(`Scope tests`, () => {
   it(`race cancels slower coroutine 1`, (done) => {
