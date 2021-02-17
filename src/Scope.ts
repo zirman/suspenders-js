@@ -111,16 +111,13 @@ export class Scope {
         resultCallback = resCallback;
       }
 
-      return suspender(
-        (res) => {
-          if (resultCallback !== undefined) {
-            resultCallback(res);
-          } else {
-            result = res;
-          }
-        },
-        this,
-      );
+      return suspender((res) => {
+        if (resultCallback !== undefined) {
+          resultCallback(res);
+        } else {
+          result = res;
+        }
+      });
     };
   }
 
@@ -188,25 +185,22 @@ export class Scope {
       const cancelCallbacks: Array<CancelFunction | void | null> = [];
 
       for (let [index, suspender] of suspenders.entries()) {
-        cancelCallbacks.push(suspender(
-          (value) => {
-            cancelCallbacks[index] = null;
+        cancelCallbacks.push(suspender((value) => {
+          cancelCallbacks[index] = null;
 
-            // cancel all other suspenders
-            for (let m = 0; m < suspenders.length; m++) {
-              const cancel = cancelCallbacks[m];
+          // cancel all other suspenders
+          for (let m = 0; m < suspenders.length; m++) {
+            const cancel = cancelCallbacks[m];
 
-              if (cancel) {
-                cancel();
-              } else {
-                cancelCallbacks[m] = null;
-              }
+            if (cancel) {
+              cancel();
+            } else {
+              cancelCallbacks[m] = null;
             }
+          }
 
-            resultCallback(value);
-          },
-          this,
-        ));
+          resultCallback(value);
+        }));
       }
 
       return () => {
@@ -259,17 +253,14 @@ export class Scope {
 
         // suspending coroutine on Suspender<T>
         const cancelCallback =
-          iteratorResult.value(
-            (value) => {
-              // checks if scope is not canceled and that other callbacks have not been called
-              if (!wasCallbackCalled) {
-                wasCallbackCalled = true;
-                this._cancelCallbacks.delete(coroutine);
-                this._resume(coroutine, value, resultCallback);
-              }
-            },
-            this,
-          );
+          iteratorResult.value((value) => {
+            // checks if scope is not canceled and that other callbacks have not been called
+            if (!wasCallbackCalled) {
+              wasCallbackCalled = true;
+              this._cancelCallbacks.delete(coroutine);
+              this._resume(coroutine, value, resultCallback);
+            }
+          });
 
         // check if suspender called callback before returning
         if (!wasCallbackCalled) {

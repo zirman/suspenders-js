@@ -4,7 +4,7 @@ import { Scope } from "./Scope"
  * Use yield on this in a coroutine to suspend the coroutine on an async task that resolves to T.
  * If in TypeScript use yield* suspend(Suspender<T>) to help the type checker get the resolved type.
  */
-export type Suspender<T> = (s: ResultCallback<T>, scope: Scope) => (CancelFunction | void)
+export type Suspender<T> = (s: ResultCallback<T>) => (CancelFunction | void)
 
 /**
  * Data object contains value or error of resolved async task.

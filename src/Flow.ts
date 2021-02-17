@@ -92,10 +92,14 @@ export abstract class Flow<T> {
    * @param collector
    */
   collect(collector: (value: T) => void): Suspender<void> {
-    return (resultCallback, scope) => {
+    return (resultCallback) => {
       const observerFunction = new ObserverFunction(collector, () => {
         resultCallback({ value: undefined });
       });
+
+      const scope = new Scope({ errorCallback: (error) => {
+        resultCallback({ tag: `error`, error });
+      }});
 
       this.addObserver(scope, observerFunction);
 
@@ -114,7 +118,11 @@ export abstract class Flow<T> {
   collectLatest(factory: (value: T) => CoroutineFactory<void>): Suspender<void> {
     let coroutine: Coroutine<void>;
 
-    return (resultCallback, scope) => {
+    return (resultCallback) => {
+      const scope = new Scope({ errorCallback: (error) => {
+        resultCallback({ tag: `error`, error });
+      }});
+
       const observer = new ObserverFunction<T>(
         (value) => {
           if (coroutine !== undefined) {
@@ -126,7 +134,7 @@ export abstract class Flow<T> {
         },
         () => {
           resultCallback({ value: undefined });
-        }
+        },
       );
 
       this.addObserver(scope, observer);
