@@ -6,13 +6,15 @@ import {
   FlowHasCompletedError,
   FlowRemoveObserverError
 } from "./Errors";
+import { ObserverFunction } from "./ObserverFunction";
 import { Scope } from "./Scope";
 import {
   CancelFunction,
   CoroutineFactory,
   Suspender,
   Observer,
-  Consumer
+  Consumer,
+  Coroutine
 } from "./Types";
 import { suspend } from "./Util";
 
@@ -78,8 +80,9 @@ export abstract class Flow<T> {
    */
   launchIn(scope: Scope) {
     const that = this;
-    scope.launch(function*() {
-      yield scope.collect(that, () => undefined);
+
+    scope.launch(function* () {
+      yield that.collect(() => undefined);
     });
   }
 
@@ -88,8 +91,19 @@ export abstract class Flow<T> {
    * @param scope
    * @param collector
    */
-  collect(scope: Scope, collector: (value: T) => void): Suspender<void> {
-    return scope.collect(this, collector);
+  collect(collector: (value: T) => void): Suspender<void> {
+    return (resultCallback, scope) => {
+      const observerFunction = new ObserverFunction(collector, () => {
+        console.log(`foo`);
+        resultCallback({ value: undefined });
+      });
+
+      this.addObserver(scope, observerFunction);
+
+      return () => {
+        this.removeObserver(observerFunction);
+      };
+    };
   }
 
   /**
@@ -98,8 +112,34 @@ export abstract class Flow<T> {
    * @param scope
    * @param factory
    */
-  collectLatest(scope: Scope, factory: (value: T) => CoroutineFactory<void>): Suspender<void> {
-    return scope.collectLatest(this, factory);
+  collectLatest(factory: (value: T) => CoroutineFactory<void>): Suspender<void> {
+    let coroutine: Coroutine<void>;
+
+    return (resultCallback, scope) => {
+      const observer = new ObserverFunction<T>(
+        (value) => {
+          if (coroutine !== undefined) {
+            scope._cancelCallbacks.get(coroutine)?.call(undefined);
+          }
+
+          coroutine = factory(value).call(scope);
+          scope._resume(coroutine, { value: undefined });
+        },
+        () => {
+          resultCallback({ value: undefined });
+        }
+      );
+
+      this.addObserver(scope, observer);
+
+      return () => {
+        this.removeObserver(observer);
+
+        if (coroutine !== undefined) {
+          scope._cancelCallbacks.get(coroutine)?.call(undefined);
+        }
+      };
+    };
   }
 
   /**
@@ -517,7 +557,12 @@ class FlowOf<T> extends Flow<T> {
     }
 
     this._observer = observer;
-    this._cancel = scope.launch(this._coroutineFactory(observer));
+    const coroutineFactory = this._coroutineFactory(observer);
+
+    this._cancel = scope.launch(function* () {
+      yield* this.call(coroutineFactory);
+      observer.complete();
+    });
   }
 
   removeObserver(observer: Observer<T>): void {

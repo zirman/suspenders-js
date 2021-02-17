@@ -24,7 +24,7 @@ export class Scope {
     console.error(error instanceof Error ? error.stack : error);
   }})
 
-  private _cancelCallbacks = new Map<Coroutine<unknown>, CancelFunction>()
+  _cancelCallbacks = new Map<Coroutine<unknown>, CancelFunction>()
   private _finishedCallbacks = new Set<ResultCallback<void>>()
   private _subscopes = new Set<Scope>();
   private _isFinishing = false
@@ -118,7 +118,8 @@ export class Scope {
           } else {
             result = res;
           }
-        }
+        },
+        this,
       );
     };
   }
@@ -203,7 +204,8 @@ export class Scope {
             }
 
             resultCallback(value);
-          }
+          },
+          this,
         ));
       }
 
@@ -223,7 +225,7 @@ export class Scope {
    * @param {Resume<unknown>} resume
    * @param {(x: T) => void | void} doneCallback
    */
-  private _resume<T>(
+  _resume<T>(
     coroutine: Coroutine<T>,
     resume: Resume<unknown>,
     resultCallback?: ResultCallback<T>,
@@ -266,6 +268,7 @@ export class Scope {
                 this._resume(coroutine, value, resultCallback);
               }
             },
+            this,
           );
 
         // check if suspender called callback before returning
@@ -370,65 +373,6 @@ export class Scope {
     if (this._isFinishing) {
       throw new ScopeFinishingError();
     }
-  }
-
-  /**
-   * Processes value emitted by flow. Processing of last value is canceled if it has not completed
-   * before a new value is emitted.
-   * @param flow
-   * @param collector
-   */
-  collect<T>(
-    flow: Flow<T>,
-    collector: (value: T) => void,
-  ): Suspender<void> {
-    return (resultCallback) => {
-      const observerFunction = new ObserverFunction(collector, () => {
-        resultCallback({ value: undefined });
-      });
-
-      flow.addObserver(this, observerFunction);
-
-      return () => {
-        flow.removeObserver(observerFunction);
-      };
-    };
-  }
-
-  /**
-   * Processes value emitted by flow. Processing of last value is canceled if it has not completed
-   * before a new value is emitted.
-   * @param flow
-   * @param factory
-   */
-  collectLatest<T>(
-    flow: Flow<T>,
-    factory: (value: T) => CoroutineFactory<void>,
-  ): Suspender<void> {
-    let coroutine: Coroutine<void>;
-
-    return (resultCallback) => {
-      const observer = new ObserverFunction<T>((value) => {
-        if (coroutine !== undefined) {
-          this._cancelCallbacks.get(coroutine)?.call(undefined);
-        }
-
-        coroutine = factory(value).call(this);
-        this._resume(coroutine, { value: undefined });
-      }, () => {
-        resultCallback({ value: undefined });
-      });
-
-      flow.addObserver(this, observer);
-
-      return () => {
-        flow.removeObserver(observer);
-
-        if (coroutine !== undefined) {
-          this._cancelCallbacks.get(coroutine)?.call(undefined);
-        }
-      };
-    };
   }
 
   /**

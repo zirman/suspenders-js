@@ -39,7 +39,7 @@ describe(`Flow tests`, () => {
 
     scope.launch(function*() {
       yield flowOfValues(1, 2, 3)
-        .collect(this, () => { throw new Error(); });
+        .collect(() => { throw new Error(); });
     });
   });
 
@@ -48,7 +48,7 @@ describe(`Flow tests`, () => {
 
     scope.launch(function*() {
       yield flowOfValues(1, 2, 3)
-        .collectLatest(this, () => function*() { throw new Error(); });
+        .collectLatest(() => function*() { throw new Error(); });
     });
   });
 
@@ -121,7 +121,7 @@ describe(`Flow tests`, () => {
 
     scope.launch(function* () {
       yield flowOf<null>((consumer) => function*() { consumer.emit(null) })
-        .collect(this, () => { throw new Error(); });
+        .collect(() => { throw new Error(); });
     });
   });
 
@@ -130,7 +130,7 @@ describe(`Flow tests`, () => {
 
     scope.launch(function* () {
       yield flowOf<null>((consumer) => function*() { consumer.emit(null) })
-        .collectLatest(this, () => function*() { throw new Error(); });
+        .collectLatest(() => function*() { throw new Error(); });
     });
   });
 
@@ -173,8 +173,8 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
     scope.launch(function*() {
-      flowOf<null>((consumer) => function*() { consumer.emit(null) })
-        .collect(this, () => {});
+      yield flowOf<null>((consumer) => function*() { consumer.emit(null) })
+        .collect(() => {});
 
       done();
     })
@@ -184,8 +184,8 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
     scope.launch(function*() {
-      flowOf<null>((consumer) => function*() { consumer.emit(null); })
-        .collectLatest(this, () => function*() {});
+      yield flowOf<null>((consumer) => function*() { consumer.emit(null); })
+        .collectLatest(() => function*() {});
 
       done();
     })

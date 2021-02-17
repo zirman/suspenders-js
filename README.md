@@ -31,8 +31,8 @@ scope.
 Additionally "Structured Concurrency" allows for automatic cancelation of coroutines that are no
 longer needed. For example, it is common to race two Promises and only take the result of the first
 to complete. The second promise cannot be canceled once started and will continue to run to
-completion. Suspenders.js automatically cancels coroutines who's results are no longer needed, making
-more efficient use of resources.
+completion. Suspenders.js automatically cancels coroutines who's results are no longer needed,
+making more efficient use of resources.
 
 ## Why another async programming library?
 
@@ -75,6 +75,8 @@ flowOf((consumer: Consumer<number>) => function*() {
   .map(x => x + x)
   .onEach(x => console.log(x))
   .launchIn(scope);
+
+
 ```
 
 ## References
