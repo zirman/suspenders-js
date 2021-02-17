@@ -94,7 +94,6 @@ export abstract class Flow<T> {
   collect(collector: (value: T) => void): Suspender<void> {
     return (resultCallback, scope) => {
       const observerFunction = new ObserverFunction(collector, () => {
-        console.log(`foo`);
         resultCallback({ value: undefined });
       });
 
