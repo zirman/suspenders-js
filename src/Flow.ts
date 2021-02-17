@@ -13,7 +13,7 @@ import {
   CoroutineFactory,
   Suspender,
   Observer,
-  Consumer,
+  Collector,
   Coroutine
 } from "./Types";
 import { suspend } from "./Util";
@@ -148,7 +148,7 @@ export abstract class Flow<T> {
    * @param transformer
    */
   transform<R>(
-    transformer: (value: T, consumer: Observer<R>) => CoroutineFactory<void>,
+    transformer: (value: T, observer: Observer<R>) => CoroutineFactory<void>,
   ): Flow<R> {
     return new TransformFlow(this, transformer);
   }
@@ -158,7 +158,7 @@ export abstract class Flow<T> {
    * emitted to observer.
    * @param factory
    */
-  catch(factory: (error: unknown, consumer: Consumer<T>) => CoroutineFactory<void>): Flow<T> {
+  catch(factory: (error: unknown, collector: Collector<T>) => CoroutineFactory<void>): Flow<T> {
     return new TransformCatch(this, factory);
   }
 
@@ -168,7 +168,7 @@ export abstract class Flow<T> {
    * @param transformer
    */
   transformLatest<R>(
-    transformer: (value: T, consumer: Consumer<R>) => CoroutineFactory<void>,
+    transformer: (value: T, collector: Collector<R>) => CoroutineFactory<void>,
   ): Flow<R> {
     return new TransformLatestFlow(this, transformer);
   }
@@ -517,7 +517,7 @@ class TransformLatestFlow<T, R> extends Flow<R> {
 
   constructor(
     private _flow: Flow<T>,
-    private _transformerFactory: (value: T, consumer: Consumer<R>) => CoroutineFactory<void>,
+    private _transformerFactory: (value: T, collector: Collector<R>) => CoroutineFactory<void>,
   ) {
     super();
   }
@@ -573,7 +573,7 @@ class FlowOf<T> extends Flow<T> {
   }
 }
 
-export const flowOf = <T>(factory: (consumer: Consumer<T>) => CoroutineFactory<void>): Flow<T> =>
+export const flowOf = <T>(factory: (collector: Collector<T>) => CoroutineFactory<void>): Flow<T> =>
   new FlowOf(factory);
 
 class FlowOfValues<T> extends Flow<T> {
@@ -659,7 +659,7 @@ export class SharedStateFlow<T> extends Flow<T> implements Observer<T> {
  * replayed on new observers. To replay the last emitted value, use StateSubject. Subjects are hot
  * and can be shared with multipler observers. New flows that observe subjects start cold.
  */
-export class EventSubject<T> extends Flow<T> implements Consumer<T> {
+export class EventSubject<T> extends Flow<T> implements Collector<T> {
   private _observers: Set<Observer<T>> = new Set();
 
   addObserver(scope: Scope, observer: Observer<T>): void {
@@ -686,7 +686,7 @@ export class EventSubject<T> extends Flow<T> implements Consumer<T> {
  * replayed. This is generally used used for hot observables like the mouse position. Subjects are
  * hot and can be shared with multipler observers. New flows that observe subjects start cold.
  */
-export class StateSubject<T> extends Flow<T> implements Consumer<T> {
+export class StateSubject<T> extends Flow<T> implements Collector<T> {
   private _observers: Set<Observer<T>> = new Set()
 
   constructor(public value: T) {

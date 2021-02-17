@@ -87,7 +87,7 @@ describe(`Flow tests`, () => {
   it(`throwing error in flowOf().map() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
-    flowOf<null>((consumer) => function*() { consumer.emit(null) })
+    flowOf<null>((collector) => function*() { collector.emit(null) })
       .map(() => { throw new Error(); })
       .launchIn(scope);
   });
@@ -95,7 +95,7 @@ describe(`Flow tests`, () => {
   it(`throwing error in flowOf().filter() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
-    flowOf<null>((consumer) => function*() { consumer.emit(null) })
+    flowOf<null>((collector) => function*() { collector.emit(null) })
       .filter(() => { throw new Error(); })
       .launchIn(scope);
   });
@@ -103,7 +103,7 @@ describe(`Flow tests`, () => {
   it(`throwing error in flowOf().flatMap() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
-    flowOf<null>((consumer) => function*() { consumer.emit(null) })
+    flowOf<null>((collector) => function*() { collector.emit(null) })
       .flatMap(() => { throw new Error(); })
       .launchIn(scope);
   });
@@ -111,7 +111,7 @@ describe(`Flow tests`, () => {
   it(`throwing error in flowOf().onEach() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
-    flowOf<null>((consumer) => function*() { consumer.emit(null) })
+    flowOf<null>((collector) => function*() { collector.emit(null) })
       .onEach(() => { throw new Error(); })
       .launchIn(scope);
   });
@@ -120,7 +120,7 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     scope.launch(function* () {
-      yield flowOf<null>((consumer) => function*() { consumer.emit(null) })
+      yield flowOf<null>((collector) => function*() { collector.emit(null) })
         .collect(() => { throw new Error(); });
     });
   });
@@ -129,7 +129,7 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     scope.launch(function* () {
-      yield flowOf<null>((consumer) => function*() { consumer.emit(null) })
+      yield flowOf<null>((collector) => function*() { collector.emit(null) })
         .collectLatest(() => function*() { throw new Error(); });
     });
   });
@@ -137,7 +137,7 @@ describe(`Flow tests`, () => {
   it(`throwing error in flowOf().transform() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
-    flowOf<null>((consumer) => function*() { consumer.emit(null) })
+    flowOf<null>((collector) => function*() { collector.emit(null) })
       .transform(() => function*() { throw new Error(); })
       .launchIn(scope);
   });
@@ -145,7 +145,7 @@ describe(`Flow tests`, () => {
   it(`throwing error in flowOf().transformLatest() calls scope error callback`, (done) => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
-    flowOf<null>((consumer) => function*() { consumer.emit(null) })
+    flowOf<null>((collector) => function*() { collector.emit(null) })
       .transformLatest(() => function*() { throw new Error(); })
       .launchIn(scope);
   });
@@ -153,12 +153,12 @@ describe(`Flow tests`, () => {
   it(`catching a flow resumes in catch coroutine`, (done) => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
-    flowOf<number>((consumer) => function*() {
-      consumer.emit(0);
+    flowOf<number>((collector) => function*() {
+      collector.emit(0);
       throw new Error();
     })
-      .catch((_, consumer) => function*() {
-        consumer.emit(1);
+      .catch((_, collector) => function*() {
+        collector.emit(1);
       })
       .onEach((i) => {
         if (scope.isActive() && i === 1) {
@@ -173,7 +173,7 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
     scope.launch(function*() {
-      yield flowOf<null>((consumer) => function*() { consumer.emit(null) })
+      yield flowOf<null>((collector) => function*() { collector.emit(null) })
         .collect(() => {});
 
       done();
@@ -184,7 +184,7 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
     scope.launch(function*() {
-      yield flowOf<null>((consumer) => function*() { consumer.emit(null); })
+      yield flowOf<null>((collector) => function*() { collector.emit(null); })
         .collectLatest(() => function*() {});
 
       done();

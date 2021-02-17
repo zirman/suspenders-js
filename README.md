@@ -1,6 +1,6 @@
 # Suspenders.js: Structured concurrency for JavaScript
 
-# Suspenders.js 0.0.3 (alpha)
+# Suspenders.js 0.0.4 (alpha)
 
 Suspenders.js is a library for asynchronous programming that supports coroutines, functional
 reactive programming, communicating sequential processes and "structured concurrency".
@@ -62,13 +62,21 @@ abstractions can be used.
 ## Examples
 
 ```ts
-import { Scope, Observer } from "suspenders-js";
+import {
+  Channel,
+  EventSubject,
+  flowOf,
+  Scope,
+  Collector,
+  suspend
+} from "suspenders-js";
 
 const scope = new Scope();
 
-flowOf((consumer: Consumer<number>) => function*() {
+// flows
+flowOf((collector: Collector<number>) => function*() {
   for (let i = 1; i <= 200; i++) {
-    consumer.emit(i);
+    collector.emit(i);
   }
 })
   .filter(x => x % 2 === 1)
@@ -76,7 +84,45 @@ flowOf((consumer: Consumer<number>) => function*() {
   .onEach(x => console.log(x))
   .launchIn(scope);
 
+// producer/consumer communicating through a channel
+const channel = new Channel<number>();
 
+scope.launch(function* () {
+  for (let i = 1; i <= 200; i++) {
+    yield channel.send(i);
+  }
+});
+
+scope.launch(function* () {
+  for (;;) {
+    const x = yield* suspend(channel.receive);
+
+    if (x % 2 === 1) {
+      const y = x + x;
+      console.log(y);
+    }
+  }
+});
+
+// event subjects being transformed using a coroutine and printed to the console
+
+const eventSubject = new EventSubject<number>();
+
+scope.launch(function* () {
+  yield eventSubject
+    .transform<number>((x, collector) => function* () {
+      if (x % 2 === 1) {
+        collector.emit(x + x);
+      }
+    })
+    .collect(x => {
+      console.log(x);
+    });
+})
+
+for (let i = 1; i <= 200; i++) {
+  eventSubject.emit(i);
+}
 ```
 
 ## References

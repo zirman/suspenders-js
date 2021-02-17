@@ -6,6 +6,7 @@ export {
   Coroutine,
   CoroutineFactory,
   CoroutineSuspender,
+  Collector
 } from "./Types";
 
 export { ScopeFinishingError, FlowConsumedError } from "./Errors";

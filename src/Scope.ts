@@ -5,7 +5,7 @@ import {
   CancelFunction,
   Coroutine,
   CoroutineFactory,
-  Consumer,
+  Collector,
   Result,
   ResultCallback,
   Resume,
@@ -384,7 +384,7 @@ export class Scope {
    */
   transformLatest<T, R>(
     flow: Flow<T>,
-    factory: (value: T, observer: Consumer<R>) => CoroutineFactory<void>,
+    factory: (value: T, observer: Collector<R>) => CoroutineFactory<void>,
     observer: Observer<R>,
   ): CancelFunction {
     let coroutine: Coroutine<void>;
