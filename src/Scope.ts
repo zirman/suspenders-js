@@ -1,16 +1,12 @@
 import { ScopeFinishingError } from "./Errors";
-import { Flow } from "./Flow";
-import { ObserverFunction } from "./ObserverFunction";
 import {
   CancelFunction,
   Coroutine,
   CoroutineFactory,
-  Collector,
   Result,
   ResultCallback,
   Resume,
   Suspender,
-  Observer
 } from "./Types";
 
 /**
@@ -329,7 +325,7 @@ export class Scope {
    * Cancels all coroutines in this scope and calls errorCallback. Bubbles error to parent.
    * @param error
    */
-  private _cancelWithError(error: unknown) {
+  _cancelWithError(error: unknown) {
     if (!this._isCancelable || this._isCanceled) {
       return;
     }
@@ -364,48 +360,5 @@ export class Scope {
     if (this._isFinishing) {
       throw new ScopeFinishingError();
     }
-  }
-
-  /**
-   * Processes value emitted by flow. Processing of last value is canceled if it has not completed
-   * before a new value is emitted.
-   * @param flow
-   * @param factory
-   * @param observer
-   */
-  transformLatest<T, R>(
-    flow: Flow<T>,
-    factory: (value: T, observer: Collector<R>) => CoroutineFactory<void>,
-    observer: Observer<R>,
-  ): CancelFunction {
-    let coroutine: Coroutine<void>;
-    let hasCompleted = false;
-
-    const downstreamObserver = new ObserverFunction<R>(
-      (value) => { observer.emit(value); },
-      () => { if (hasCompleted) { observer.complete(); } },
-    );
-
-    const upstreamObserver = new ObserverFunction<T>(
-      (value) => {
-        if (coroutine !== undefined) {
-          this._cancelCallbacks.get(coroutine)?.call(undefined);
-        }
-
-        coroutine = factory(value, downstreamObserver).call(this);
-        this._resume(coroutine, { value: undefined });
-      },
-      () => { hasCompleted = true; },
-    );
-
-    flow.addObserver(this, upstreamObserver);
-
-    return () => {
-      flow.removeObserver(upstreamObserver);
-
-      if (coroutine !== undefined) {
-        this._cancelCallbacks.get(coroutine)?.call(undefined);
-      }
-    };
   }
 }

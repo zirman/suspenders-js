@@ -1,6 +1,5 @@
 import { flowOf } from "./Flow";
 import { Scope } from "./Scope";
-import { Observer } from "./Types";
 import { awaitCancelation, suspend, wait } from "./Util";
 
 describe(`Scope tests`, () => {

@@ -50,4 +50,5 @@ export interface Collector<T> {
  */
 export interface Observer<T> extends Collector<T> {
   complete(): void
+  error(error: unknown): void
 }
