@@ -1,6 +1,6 @@
 {
   "name": "suspenders-js",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Asynchronous programming library utilizing coroutines, functional reactive programming and structured concurrency.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

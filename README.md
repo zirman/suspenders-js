@@ -1,6 +1,6 @@
 # Suspenders.js: Structured concurrency for JavaScript
 
-# Suspenders.js 0.0.4 (alpha)
+# Suspenders.js 0.0.5 (alpha)
 
 Suspenders.js is a library for asynchronous programming that supports coroutines, functional
 reactive programming, communicating sequential processes and "structured concurrency".
