@@ -34,11 +34,6 @@ export type Coroutine<T> = Generator<Suspender<unknown>, T, unknown>
 export type CoroutineFactory<T> = (this: Scope) => Coroutine<T>
 
 /**
- * Use yield* on this in a coroutine, to start an async task that resolves a T.
- */
-export type CoroutineSuspender<T> = Generator<Suspender<T>, T, unknown>
-
-/**
  * Collector interface used to emit values.
  */
 export interface Collector<T> {

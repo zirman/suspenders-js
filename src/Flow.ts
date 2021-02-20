@@ -15,7 +15,6 @@ import {
   Collector,
   Coroutine,
 } from "./Types";
-import { suspend } from "./Util";
 
 /**
  * Abstract class for emitting multiple values. Normally, a flow is cold and doesn't start producing
@@ -498,7 +497,7 @@ class TransformFlow<T, R> extends Flow<R> implements Observer<T> {
       while (!that._hasCompleted) {
         yield* this.call(
           that._transformerFactory(
-            yield* suspend(that._receiverChannel!.receive),
+            yield* this.suspend(that._receiverChannel!.receive),
             that._observerFunction!,
           ),
         );

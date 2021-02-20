@@ -1,6 +1,6 @@
 # Suspenders.js: Structured concurrency for JavaScript
 
-# Suspenders.js 0.0.5 (alpha)
+# Suspenders.js 0.0.6 (alpha)
 
 Suspenders.js is a library for asynchronous programming that supports coroutines, functional
 reactive programming, communicating sequential processes and "structured concurrency".
@@ -67,14 +67,16 @@ import {
   EventSubject,
   flowOf,
   Scope,
-  Collector,
-  suspend
+  suspend,
+  race,
+  wait,
 } from "suspenders-js";
 
 const scope = new Scope();
 
 // flows
-flowOf((collector: Collector<number>) => function*() {
+
+flowOf<number>((collector) => function*() {
   for (let i = 1; i <= 200; i++) {
     collector.emit(i);
   }
@@ -85,6 +87,7 @@ flowOf((collector: Collector<number>) => function*() {
   .launchIn(scope);
 
 // producer/consumer communicating through a channel
+
 const channel = new Channel<number>();
 
 scope.launch(function* () {
@@ -95,7 +98,7 @@ scope.launch(function* () {
 
 scope.launch(function* () {
   for (;;) {
-    const x = yield* suspend(channel.receive);
+    const x = yield* this.suspend(channel.receive);
 
     if (x % 2 === 1) {
       const y = x + x;
@@ -123,6 +126,53 @@ scope.launch(function* () {
 for (let i = 1; i <= 200; i++) {
   eventSubject.emit(i);
 }
+
+// calling another coroutine from a coroutine
+
+function* anotherCoroutine() {
+  yield wait(100);
+  return 1;
+}
+
+scope.launch(function*() {
+  yield wait(100);
+  const x = yield* this.call(anotherCoroutine);
+  console.log(x);
+});
+
+// asynchronously call coroutines
+
+function* jobA() {
+  yield wait(100);
+  return 1;
+}
+
+function* jobB() {
+  yield wait(200);
+  return 2;
+}
+
+scope.launch<void>(function*() {
+  // Runs both jobs concurrently.
+
+  const [resultA, resultB] = yield* this.suspend2(
+    this.callAsync(jobA),
+    this.callAsync(jobB),
+  );
+
+  console.log(`${resultA} ${resultB}`);
+});
+
+scope.launch<void>(function*() {
+  // Races jobA with jobB to get the faster result. Cancels the slower job.
+
+  const fastestResult = yield* this.suspend(race(
+    this.callAsync(jobA),
+    this.callAsync(jobB),
+  ));
+
+  console.log(fastestResult);
+});
 ```
 
 ## References

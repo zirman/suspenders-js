@@ -1,72 +1,8 @@
 import { flowOf } from "./Flow";
 import { Scope } from "./Scope";
-import { awaitCancelation, suspend, wait } from "./Util";
+import { awaitCancelation, wait } from "./Util";
 
 describe(`Scope tests`, () => {
-  it(`race cancels slower coroutine 1`, (done) => {
-    new Scope({ errorCallback: (error) => { done(error); }})
-      .launch(function* () {
-        let finallyCalled = false
-
-        const result = yield* suspend(this.race(
-          this.callAsync(function* () {
-            yield wait(0);
-            return 0;
-          }),
-          this.callAsync(function* () {
-            try {
-              yield wait(5);
-              done(`this should not run`);
-              this.cancel();
-              return 1;
-            } finally {
-              finallyCalled = true;
-            }
-          }),
-        ));
-
-        if (result === 0 && finallyCalled) {
-          done();
-        } else {
-          done(`result: ${result} finallyCalled: ${finallyCalled}`);
-        }
-
-        this.cancel();
-      });
-  });
-
-  it(`race cancels slower coroutine 2`, (done) => {
-    new Scope({ errorCallback: (error) => { done(error); }})
-      .launch(function* () {
-        let finallyCalled = false
-
-        const result = yield* suspend(this.race(
-          this.callAsync(function* () {
-            try {
-              yield wait(5);
-              done(`this should not run`);
-              this.cancel();
-              return 1;
-            } finally {
-              finallyCalled = true;
-            }
-          }),
-          this.callAsync(function* () {
-            yield wait(0);
-            return 0;
-          }),
-        ));
-
-        if (result === 0 && finallyCalled) {
-          done();
-        } else {
-          done(`result: ${result} finallyCalled: ${finallyCalled}`);
-        }
-
-        this.cancel();
-      });
-  });
-
   it(`sibling coroutine is canceled when scope is canceled`, (done) => {
     const scope = new Scope();
 
@@ -135,7 +71,7 @@ describe(`Scope tests`, () => {
         return 1;
       });
 
-      const value = yield* suspend(asyncValue);
+      const value = yield* this.suspend(asyncValue);
 
       if (value === 1) {
         done();
@@ -156,7 +92,7 @@ describe(`Scope tests`, () => {
           return 1;
         });
 
-        const value = yield* suspend(asyncValue);
+        const value = yield* this.suspend(asyncValue);
 
         if (value === 1) {
           done();
@@ -180,7 +116,7 @@ describe(`Scope tests`, () => {
           return 1;
         });
 
-        const value = yield* suspend(asyncValue);
+        const value = yield* this.suspend(asyncValue);
 
         if (value === 1) {
           done();

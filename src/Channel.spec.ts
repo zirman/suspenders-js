@@ -1,6 +1,5 @@
 import { Channel } from "./Channel";
 import { Scope } from "./Scope";
-import { suspend } from "./Util";
 
 describe(`channel tests`, () => {
   it(`channel send/receive messages`, (done) => {
@@ -9,7 +8,7 @@ describe(`channel tests`, () => {
 
     scope.launch(function* () {
       try {
-        if ((yield* suspend(channel.receive)) !== 0) {
+        if ((yield* this.suspend(channel.receive)) !== 0) {
           done(`didn't receive expected message`);
           return;
         }
@@ -31,13 +30,13 @@ describe(`channel tests`, () => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
     scope.launch(function* () {
-      if ((yield* suspend(channel.receive)) !== 0) {
+      if ((yield* this.suspend(channel.receive)) !== 0) {
         done(`received out of order 0`);
         this.cancel();
         return;
       }
 
-      if ((yield* suspend(channel.receive)) !== 3) {
+      if ((yield* this.suspend(channel.receive)) !== 3) {
         done(`received out of order 3`);
         this.cancel();
         return;
@@ -46,12 +45,12 @@ describe(`channel tests`, () => {
 
     scope.launch(function* () {
       try {
-        if ((yield* suspend(channel.receive)) !== 1) {
+        if ((yield* this.suspend(channel.receive)) !== 1) {
           done(`received out of order 1`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 4) {
+        if ((yield* this.suspend(channel.receive)) !== 4) {
           done(`received out of order 4`);
           return;
         }
@@ -64,12 +63,12 @@ describe(`channel tests`, () => {
 
     scope.launch(function* () {
       try {
-        if ((yield* suspend(channel.receive)) !== 2) {
+        if ((yield* this.suspend(channel.receive)) !== 2) {
           done(`received out of order 2`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 5) {
+        if ((yield* this.suspend(channel.receive)) !== 5) {
           done(`received out of order 5`);
           return;
         }
@@ -112,32 +111,32 @@ describe(`channel tests`, () => {
 
     scope.launch(function* () {
       try {
-        if ((yield* suspend(channel.receive)) !== 0) {
+        if ((yield* this.suspend(channel.receive)) !== 0) {
           done(`received out of order 0`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 1) {
+        if ((yield* this.suspend(channel.receive)) !== 1) {
           done(`received out of order 1`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 2) {
+        if ((yield* this.suspend(channel.receive)) !== 2) {
           done(`received out of order 2`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 3) {
+        if ((yield* this.suspend(channel.receive)) !== 3) {
           done(`received out of order 3`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 4) {
+        if ((yield* this.suspend(channel.receive)) !== 4) {
           done(`received out of order 4`);
           return;
         }
 
-        if ((yield* suspend(channel.receive)) !== 5) {
+        if ((yield* this.suspend(channel.receive)) !== 5) {
           done(`received out of order 5`);
           return;
         }

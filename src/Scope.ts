@@ -90,31 +90,62 @@ export class Scope {
   }
 
   /**
-   * Starts the suspender but doesn't wait for it's result. Returns a new suspender that returns the
-   * result.
+   * Converts a suspender to a coroutine that yields to get a result.
    * @param {Suspender<T>} suspender
-   * @return {Suspender<T>}
+   * @return {Coroutine<T>}
    */
-  async<T>(suspender: Suspender<T>): Suspender<T> {
-    this._checkIfFinishing();
-    let result: Result<T> | undefined;
-    let resultCallback: ResultCallback<T> | undefined;
+  *suspend<T>(suspender: Suspender<T>): Coroutine<T> {
+    return (yield suspender) as T;
+  }
 
-    return (resCallback) => {
-      if (result !== undefined) {
-        resCallback(result);
-      } else {
-        resultCallback = resCallback;
-      }
+  /**
+   * Converts 2 suspenders to a coroutine that yields a tuple of the results. Usually used with
+   * asynchronous suspenders so they run concurrently.
+   * @param {Suspender<A>} susA
+   * @param {Suspender<B>} susB
+   * @return {[A, B]}
+   */
+  *suspend2<A, B>(susA: Suspender<A>, susB: Suspender<B>): Coroutine<[A, B]> {
+    return [yield* this.suspend(susA), yield* this.suspend(susB)];
+  }
 
-      return suspender((res) => {
-        if (resultCallback !== undefined) {
-          resultCallback(res);
-        } else {
-          result = res;
-        }
-      });
-    };
+  /**
+   * Converts 3 suspenders to a coroutine that yields a tuple of the results. Usually used with
+   * asynchronous suspenders so they run concurrently.
+   * @param {Suspender<A>} susA
+   * @param {Suspender<B>} susB
+   * @param {Suspender<C>} susC
+   * @return {[A, B, C]}
+   */
+  *suspend3<A, B, C>(
+    susA: Suspender<A>,
+    susB: Suspender<B>,
+    susC: Suspender<C>
+  ): Coroutine<[A, B, C]> {
+    return [yield* this.suspend(susA), yield* this.suspend(susB), yield* this.suspend(susC)];
+  }
+
+  /**
+   * Converts 4 suspenders to a coroutine that yields a tuple of the results. Usually used with
+   * asynchronous suspenders so they run concurrently.
+   * @param {Suspender<A>} susA
+   * @param {Suspender<B>} susB
+   * @param {Suspender<C>} susC
+   * @param {Suspender<D>} susD
+   * @return {[A, B, C, D]}
+   */
+  *suspend4<A, B, C, D>(
+    susA: Suspender<A>,
+    susB: Suspender<B>,
+    susC: Suspender<C>,
+    susD: Suspender<D>
+  ): Coroutine<[A, B, C, D]> {
+    return [
+      yield* this.suspend(susA),
+      yield* this.suspend(susB),
+      yield* this.suspend(susC),
+      yield* this.suspend(susD),
+    ];
   }
 
   /**
@@ -166,45 +197,6 @@ export class Scope {
       return () => {
         // if there isn't a cancel callback for the coroutine, it was canceled or had completed
         this._cancelCallbacks.get(coroutine)?.call(undefined);
-      };
-    };
-  }
-
-  /**
-   * Returns the first suspender to resolve successfully. All other pending suspenders are canceled.
-   * If all suspenders error, throws the last error.
-   * @params {Array<Suspender<T>>} suspenders
-   * @return {Suspender<T>}
-   */
-  race<T>(...suspenders: Array<Suspender<T>>): Suspender<T> {
-    return (resultCallback) => {
-      const cancelCallbacks: Array<CancelFunction | void | null> = [];
-
-      for (let [index, suspender] of suspenders.entries()) {
-        cancelCallbacks.push(suspender((value) => {
-          cancelCallbacks[index] = null;
-
-          // cancel all other suspenders
-          for (let m = 0; m < suspenders.length; m++) {
-            const cancel = cancelCallbacks[m];
-
-            if (cancel) {
-              cancel();
-            } else {
-              cancelCallbacks[m] = null;
-            }
-          }
-
-          resultCallback(value);
-        }));
-      }
-
-      return () => {
-        for (const cancelCallback of cancelCallbacks) {
-          if (cancelCallback) {
-            cancelCallback();
-          }
-        }
       };
     };
   }
