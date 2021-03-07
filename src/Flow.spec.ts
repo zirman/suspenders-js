@@ -22,7 +22,7 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOfValues(1, 2, 3)
-      .flatMap(() => { throw new Error(); })
+      .mergeMap(() => { throw new Error(); })
       .launchIn(scope);
   });
 
@@ -104,7 +104,7 @@ describe(`Flow tests`, () => {
     const scope = new Scope({ errorCallback: () => { done(); }});
 
     flowOf<null>((collector) => function*() { collector.emit(null) })
-      .flatMap(() => { throw new Error(); })
+      .mergeMap(() => { throw new Error(); })
       .launchIn(scope);
   });
 

@@ -3,7 +3,7 @@
  */
 export class FlowConsumedError extends Error {
   name = `FlowConsumedError`
-  message = `This flow can only be consumed once. Use .sharedState() or .sharedEvent() to share flows.`
+  message = `This cold flow can only be consumed once. Use .sharedState() or .sharedEvent() to share cold flows.`
 }
 
 /**

@@ -17,24 +17,39 @@ import {
 } from "./Types";
 
 /**
- * Abstract class for emitting multiple values. Normally, a flow is cold and doesn't start producing
- * values until it is consumed with .collect() or another consuming method. Sharing a cold flow with
- * multiple coroutines requires converting it into a SharedEventSubject or SharedStateSubject.
+ * Abstract class for emitting multiple values. A cold flow is doesn't start producing values until
+ * it is yield in a coroutine with .collect() or .collectLatest(). Sharing a cold flow with multiple
+ * coroutines requires converting it into a SharedEventSubject or SharedStateSubject. Hot flows
+ * are EventSubjects and StateSubjects.
  */
 export abstract class Flow<T> {
+  /**
+   * Starts emitting values to an observer. If this is a single use cold Flow, this can only be
+   * called once. Hot flows like subjects and shared flows accept multiple observers.
+   * adding more than one observer.
+   * @param {Observer<T>} observer
+   */
   abstract addObserver(observer: Observer<T>): void
+
+  /**
+   * Removes an observer from receiving new values from a flow. Only pass in observers that have
+   * been previously added. If this is a single use cold flow, it will cancel any running upstream
+   * coroutines.
+   * @param {Observer<T>} observer
+   */
   abstract removeObserver(observer: Observer<T>): void
 
   /**
    * Converts values emitted using mapper function.
-   * @param mapper
+   * @param {(value) => R} mapper
+   * @returns {Flow<R>}
    */
   map<R>(mapper: (value: T) => R): Flow<R> {
     return new MapFlow<T, R>(this, mapper);
   }
 
   /**
-   * Values that don't return true from predicate function are not emitted.
+   * Values that don't return true from predicate function are not emitted downstream.
    * @param predicate
    */
   filter(predicate: (value: T) => boolean): Flow<T> {
@@ -45,8 +60,8 @@ export abstract class Flow<T> {
    * Runs binder on each emitted value and combines outputs into a single flow.
    * @param binder
    */
-  flatMap<R>(binder: (value: T) => Flow<R>): Flow<R> {
-    return new FlatMapFlow(this, binder);
+  mergeMap<R>(binder: (value: T) => Flow<R>): Flow<R> {
+    return new MergeMapFlow(this, binder);
   }
 
   /**
@@ -60,6 +75,7 @@ export abstract class Flow<T> {
   /**
    * Consumes values in upstream Flow. Shares values with downstream flow. Replays last value
    * emitted on new observers.
+   * @returns {Flow<T>}
    */
   sharedState(): Flow<T> {
     return new SharedStateFlow<T>(this);
@@ -67,13 +83,14 @@ export abstract class Flow<T> {
 
   /**
    * Consumes values in upstream Flow. Shares values with downstream flow.
+   * @returns {Flow<T>}
    */
   sharedEvent(): Flow<T> {
     return new SharedEventFlow<T>(this);
   }
 
   /**
-   * Consumes Flow in scope, ignoring emitted vaues.
+   * Collects Flow in scope, ignoring emitted values.
    * @param scope
    */
   launchIn(scope: Scope) {
@@ -86,8 +103,8 @@ export abstract class Flow<T> {
 
   /**
    * Consumes Flow in scope. Runs collector function on emitted values.
-   * @param scope
-   * @param collector
+   * @param {(value: T) => void} collector
+   * @returns {Suspender<void>}
    */
   collect(collector: (value: T) => void): Suspender<void> {
     return (resultCallback) => {
@@ -108,12 +125,11 @@ export abstract class Flow<T> {
   /**
    * Consumes Flow in scope. Runs collector coroutine on emitted values. Cancels previously started
    * coroutine if it has not completed.
-   * @param scope
-   * @param factory
+   * @param {(value: T) => CoroutineFactory<void>} coroutineFactory
    */
-  collectLatest(factory: (value: T) => CoroutineFactory<void>): Suspender<void> {
+  collectLatest(coroutineFactory: (value: T) => CoroutineFactory<void>): Suspender<void> {
     return (resultCallback) => {
-      let cancelFunction: CancelFunction | void;
+      let cancelFunction: CancelFunction | undefined;
 
       const scope = new Scope({ errorCallback: (error) => {
         resultCallback({ tag: `error`, error });
@@ -125,7 +141,7 @@ export abstract class Flow<T> {
             cancelFunction();
           }
 
-          cancelFunction = scope.launch(factory(value));
+          cancelFunction = scope.launch(coroutineFactory(value));
         },
         () => { resultCallback({ value: undefined }); },
         (error) => { resultCallback({ tag: `error`, error }); },
@@ -306,7 +322,7 @@ class FilterFlow<T> extends Flow<T> implements Observer<T> {
   }
 }
 
-class FlatMapFlow<T, R> extends Flow<R> implements Observer<T> {
+class MergeMapFlow<T, R> extends Flow<R> implements Observer<T> {
   private _observer?: Observer<R>;
   private _hasCompleted = false;
 

@@ -149,13 +149,13 @@ export class Scope {
   }
 
   /**
-   * Starts a coroutine in scope and waits for all it's subroutines to finish before returning.
-   * Internally, this creates a subscope and launches the coroutine in that subscope. When the
-   * subscope finishes the results of the coroutine are returned.
+   * Starts a coroutine in scope and waits for all it's launched coroutines to finish before
+   * returning. Internally, this creates a subscope and launches the coroutine in that subscope.
+   * When the subscope finishes the results of the coroutine are returned.
    * @param {CoroutineFactory<T>} factory
    */
   *call<T>(factory: CoroutineFactory<T>): Coroutine<T> {
-    // if this scope is canceled, then yield was called from a finally block.
+    // if this scope is canceled, then yield was likely called from a finally block.
     // resume the coroutine on a non canceling scope
     if (this._isCanceled) {
       return yield* Scope.nonCanceling.call<T>(factory);
