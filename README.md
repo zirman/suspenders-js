@@ -83,17 +83,17 @@ const scope = new Scope();
 // scope2 is canceled, only coroutine3 and coroutine4 are canceled. If coroutine3 throws an error,
 // all the coroutines and scopes are canceled.
 
-// scope1
-// |
-// +- coroutine1
-// |
-// +- coroutine2
-// |
-// +- scope2
-//    |
-//    + coroutine3
-//    |
-//    + coroutine4
+// + - scope1
+//   |
+//   + - coroutine1
+//   |
+//   + - coroutine2
+//   |
+//   + - scope2
+//     |
+//     + - coroutine3
+//     |
+//     + - coroutine4
 
 const scope = new Scope();
 
