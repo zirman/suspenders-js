@@ -1,6 +1,6 @@
 import { flowOf } from "./Flow";
 import { Scope } from "./Scope";
-import { awaitCancelation, wait } from "./Util";
+import { awaitCancellation, wait } from "./Util";
 
 describe(`Scope tests`, () => {
   it(`sibling coroutine is canceled when scope is canceled`, (done) => {
@@ -24,7 +24,7 @@ describe(`Scope tests`, () => {
 
     scope.launch(function* () {
       try {
-        yield awaitCancelation();
+        yield awaitCancellation();
       } finally {
         done();
       }
@@ -37,7 +37,7 @@ describe(`Scope tests`, () => {
     const scope = new Scope({ errorCallback: (error) => { done(error); }});
 
     const cancelFunction = scope.launch(function* () {
-      yield awaitCancelation();
+      yield awaitCancellation();
     });
 
     cancelFunction();
@@ -86,7 +86,7 @@ describe(`Scope tests`, () => {
 
     const cancel = scope.launch(function* () {
       try {
-        yield awaitCancelation();
+        yield awaitCancellation();
       } finally {
         const asyncValue = this.callAsync(function* () {
           return 1;
@@ -110,7 +110,7 @@ describe(`Scope tests`, () => {
 
     scope.launch(function* () {
       try {
-        yield awaitCancelation();
+        yield awaitCancellation();
       } finally {
         const asyncValue = this.callAsync(function* () {
           return 1;
@@ -150,7 +150,7 @@ describe(`Scope tests`, () => {
 
     const cancel = scope.launch(function* () {
       try {
-        yield awaitCancelation();
+        yield awaitCancellation();
       } finally {
         yield wait(1);
 
@@ -175,7 +175,7 @@ describe(`Scope tests`, () => {
 
     scope.launch(function* () {
       try {
-        yield awaitCancelation();
+        yield awaitCancellation();
       } finally {
         yield wait(1);
 

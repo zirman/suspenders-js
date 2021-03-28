@@ -16,22 +16,22 @@ hell. Coroutines flatten those callbacks into what looks like regular synchronou
 are special JavaScript generators that suspend using the 'yield' keyword whenever it would block.
 When an asynchronous result is ready, it resumes the coroutine where it left off without needing a
 callback. Unlike Promises or Async/Await, coroutines can be canceled after started. Any asynchronous
-tasks they are suspended on will be stopped and their finally blocks will be called to clean up
+tasks they are suspended on will be stopped, and their finally blocks will be called to clean up
 resources.
 
 What is structured concurrency? It organizes running coroutines into scopes to better reason about
-their lifetimes, error handling and cancelation. Coroutines are launched within a scope where they
-run until complete, throw an error or the scope is canceled. A coroutine's finally block will run
+their lifetimes, error handling and cancellation. Coroutines are launched within a scope where they
+run until complete, throw an error, or the scope is canceled. A coroutine's finally block will run
 even after being canceled. This ensures that resources like network connections or file descriptors
 are always closed when no longer needed. If a coroutine throws an error, the containing scope
-cancels with an error. Canceled scopes propagate cancelation to all coroutines within it. And scopes
+cancels with an error. Canceled scopes propagate cancellation to all coroutines within it. And scopes
 that canceled with an error, call their error callback and bubble up the error to their parent
 scope.
 
-Additionally "Structured Concurrency" allows for automatic cancelation of coroutines that are no
+Additionally, "Structured Concurrency" allows for automatic cancellation of coroutines that are no
 longer needed. For example, it is common to race two Promises and only take the result of the first
 to complete. The second promise cannot be canceled once started and will continue to run to
-completion. Suspenders.js automatically cancels coroutines who's results are no longer needed,
+completion. Suspenders.js automatically cancels coroutines whose results are no longer needed,
 making more efficient use of resources.
 
 ## Why another async programming library?
@@ -41,18 +41,18 @@ short running and will never need to be canceled. With Suspenders.js, your async
 for as long as required and then canceled when they are no longer needed.
 
 Why choose Suspenders.js over async generators? Async generators can be canceled by calling
-.return() on their iterator. If their finally block requires another async operation it will not run
-to completion. Also the last promise in an async generator cannot be canceled because promises are
+.return() on their iterator. If their finally block requires another async operation, it will not run
+to completion. Also, the last promise in an async generator cannot be canceled because promises are
 not cancelable. Async generators cannot be canceled as a group or raced to get the fastest result.
 
 Why choose Suspenders.js over async/await? Async await doesn't have structured concurrency and
-cancelation.
+cancellation.
 
 Why choose Suspenders.js over Rx.js. Suspenders.js coroutines are a cleaner way of handling
 chains of single async values. RxJava2 has the Single<T> class for this purpose. Since Rx.js does
 not currently support Single<T>, Suspenders.js should be used to handle chains of async singles.
 
-Why choose Suspenders.js over JS-CSP? Suspenders.js makes controlling the lifetime and cancelation
+Why choose Suspenders.js over JS-CSP? Suspenders.js makes controlling the lifetime and cancellation
 of processes simple through "Structured Concurrency". Suspenders.js has support for functional
 reactive programming style using Flow, EventSubject (hot events) and StateSubject (hot state).
 Suspenders.js also has channels to support communicating sequential processes. However, channels are
@@ -70,8 +70,6 @@ import {
   race,
   wait,
 } from "suspenders-js";
-
-const scope = new Scope();
 
 // Structured concurrency
 // Scopes have ownership of coroutines. Coroutines are launched in a scope. If that scope is
@@ -204,7 +202,7 @@ scope.launch(function* () {
 });
 
 scope.launch(function* () {
-  // This will resume before all coroutines launched from anotherCoroutine() have completed.
+  // This will resume BEFORE all coroutines launched from anotherCoroutine() have completed.
   const x = yield* anotherCoroutine.call(this);
   console.log(x);
 });

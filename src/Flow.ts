@@ -751,7 +751,7 @@ export const flowOf = <T>(factory: (collector: Collector<T>) => CoroutineFactory
   new FlowOf(factory);
 
 class FlowOfValues<T> extends Flow<T> {
-  private _values: Array<T>;
+  private readonly _values: Array<T>;
 
   constructor(...args: Array<T>) {
     super();

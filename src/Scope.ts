@@ -26,7 +26,7 @@ export class Scope {
   private _isFinishing = false
   private _isFinished = false
   private _isCanceled = false
-  private _isCancelable: boolean
+  private readonly _isCancelable: boolean
   private _parent?: Scope
   private _errorCallback?: (error: unknown, scope: Scope) => void
 
@@ -205,7 +205,7 @@ export class Scope {
    * Resumes a coroutine.
    * @param {Coroutine<T>} coroutine
    * @param {Resume<unknown>} resume
-   * @param {(x: T) => void | void} doneCallback
+   * @param {ResultCallback<T>} resultCallback?
    */
   _resume<T>(
     coroutine: Coroutine<T>,
@@ -221,7 +221,7 @@ export class Scope {
         : coroutine.next(resume.value);
 
       // coroutine completed without error
-      if (iteratorResult.done === true) {
+      if (iteratorResult.done) {
         if (resume.tag !== `finish`) {
           resultCallback?.call(undefined, { value: iteratorResult.value });
         }
@@ -340,7 +340,7 @@ export class Scope {
       console.error(`error in error callback ${anotherError.stack}`);
     }
 
-    // bubble up cancelation to parent
+    // bubble up cancellation to parent
     this._parent?._subscopes.delete(this);
     this._parent?._cancelWithError(error);
   }

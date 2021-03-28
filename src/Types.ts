@@ -26,7 +26,7 @@ export type CancelFunction = () => void
 /**
  * Instantiated coroutine.
  */
-export type Coroutine<T> = Generator<Suspender<unknown>, T, unknown>
+export type Coroutine<T> = Generator<Suspender<unknown>, T>
 
 /**
  * Call Scope.launch(CoroutineFactory<T>) to instantiate a Coroutine.

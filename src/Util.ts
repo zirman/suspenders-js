@@ -82,7 +82,7 @@ export const wait = (millis: number): Suspender<void> => {
   };
 }
 
-export const awaitCancelation = (): Suspender<void> => {
+export const awaitCancellation = (): Suspender<void> => {
   return () => {};
 }
 

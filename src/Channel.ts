@@ -9,7 +9,7 @@ import { ResultCallback, Suspender } from "./Types";
 export class Channel<T> {
   private _receiverSuspenders: Array<ResultCallback<T>> = []
   private _buffer: Array<[T, ResultCallback<void> | void]> = []
-  private _bufferSize: number
+  private readonly _bufferSize: number
 
   constructor(options?: { bufferSize?: number }) {
     this._bufferSize = options?.bufferSize ?? 0;
@@ -40,7 +40,6 @@ export class Channel<T> {
       // count how many suspended senders can be resumed to fill buffer to max
       let resumeCount = 0;
 
-      let index = 0;
       for (let index = 0; index < this._buffer.length; index++) {
         if (resumeCount >= this._bufferSize) {
           break;
@@ -75,7 +74,7 @@ export class Channel<T> {
   /**
    * Sends a message on this channel. If there is a queued receiver coroutine, it is resumed
    * immediately to process the message. If there are no queued receivers and buffer is full, the
-   * sending coroutine is suspened until next message is received on this channel. Multiple
+   * sending coroutine is suspended until next message is received on this channel. Multiple
    * suspended senders are resumed in order they were suspended.
    * @param value
    */
