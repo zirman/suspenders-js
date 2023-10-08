@@ -1,35 +1,45 @@
 {
   "name": "suspenders-js",
-  "version": "0.0.8",
-  "description": "Asynchronous programming library utilizing coroutines, functional reactive programming and structured concurrency.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "0.0.9",
+  "type": "module",
+  "description": "Asynchronous programming library utilizing coroutines and structured concurrency.",
+  "main": "lib/main.js",
+  "types": "lib/main.d.ts",
+  "files": [
+    "/lib"
+  ],
   "scripts": {
+    "clean": "rm -Rf ./lib",
     "compile": "tsc --declaration",
-    "prepublish": "tsc",
-    "test": "mocha"
+    "prepublish": "tsc --module es2022",
+    "test": "tsc --module commonjs && mocha --no-timeouts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zirman/suspenders-js.git"
   },
   "keywords": [
-    "asynchronous",
     "coroutines",
-    "generator",
-    "reactive",
-    "frp",
-    "csp",
-    "channels",
-    "subjects",
-    "behaviors",
-    "events",
-    "scope",
-    "concurrent",
-    "parallel",
-    "functional reactive programming",
+    "lightweight threads",
     "structured concurrency",
-    "kotlin coroutines"
+    "reactive",
+    "high performance",
+    "promise",
+    "async",
+    "await",
+    "future",
+    "channels",
+    "generators",
+    "goroutines",
+    "green threads",
+    "parallel",
+    "concurrent",
+    "communicating sequential processes",
+    "rx",
+    "bacon",
+    "mobx",
+    "cycle",
+    "most"
   ],
   "author": "Robert Chrzanowski",
   "license": "Apache-2.0",
@@ -38,13 +48,13 @@
   },
   "homepage": "https://github.com/zirman/suspenders-js#readme",
   "devDependencies": {
-    "@types/assert": "^1.5.4",
-    "@types/chai": "^4.2.14",
-    "@types/mocha": "^8.2.0",
-    "assert": "^2.0.0",
-    "chai": "^4.3.0",
-    "mocha": "^8.2.1",
+    "@types/assert": "^1.5.7",
+    "@types/chai": "^4.3.6",
+    "@types/mocha": "^10.0.1",
+    "assert": "^2.1.0",
+    "chai": "^4.3.8",
+    "mocha": "^10.2.0",
     "ts-node": "^9.1.1",
-    "typescript": "^4.1.5"
+    "typescript": "^5.2.2"
   }
 }

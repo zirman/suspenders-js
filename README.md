@@ -1,6 +1,6 @@
 # Suspenders.js: Structured concurrency for JavaScript
 
-# Suspenders.js 0.0.8 (alpha)
+# Suspenders.js 0.0.9 (alpha)
 
 Suspenders.js is a library for asynchronous programming that supports coroutines, functional
 reactive programming, communicating sequential processes and "structured concurrency".
@@ -16,13 +16,13 @@ hell. Coroutines flatten those callbacks into what looks like regular synchronou
 are special JavaScript generators that suspend using the 'yield' keyword whenever it would block.
 When an asynchronous result is ready, it resumes the coroutine where it left off without needing a
 callback. Unlike Promises or Async/Await, coroutines can be canceled after started. Any asynchronous
-tasks they are suspended on will be stopped, and their finally blocks will be called to clean up
-resources.
+tasks that are suspended on will be stopped, and their finally blocks will be called to clean up
+any allocated resources.
 
 What is structured concurrency? It organizes running coroutines into scopes to better reason about
 their lifetimes, error handling and cancellation. Coroutines are launched within a scope where they
-run until complete, throw an error, or the scope is canceled. A coroutine's finally block will run
-even after being canceled. This ensures that resources like network connections or file descriptors
+run until complete, throw an error, or the scope is canceled. A coroutine's finally block is guarenteed
+to run even after being canceled. This ensures that resources like network connections or file descriptors
 are always closed when no longer needed. If a coroutine throws an error, the containing scope
 cancels with an error. Canceled scopes propagate cancellation to all coroutines within it. And scopes
 that canceled with an error, call their error callback and bubble up the error to their parent
@@ -62,14 +62,7 @@ abstractions can be used.
 ## Examples
 
 ```ts
-import {
-  Channel,
-  EventSubject,
-  flowOf,
-  Scope,
-  race,
-  wait,
-} from "suspenders-js";
+import {awaitPromise, Channel, EventSubject, flowOf, race, Scope, wait} from "suspenders-js"
 
 // Structured concurrency
 // Scopes have ownership of coroutines. Coroutines are launched in a scope. If that scope is
@@ -93,46 +86,63 @@ import {
 //     |
 //     + - coroutine4
 
-const scope = new Scope();
+const scope = new CoroutineScope()
+
+function resolveAfter2Seconds() {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve('resolved')
+        }, 2000)
+    })
+}
+
+function* asyncCall() {
+    console.log('calling')
+    const result = yield* awaitPromise(resolveAfter2Seconds())
+    console.log(result)
+    // Expected output: "resolved"
+}
+
+scope.launch(asyncCall)
 
 // Flows emit multiple async values. They provide a typical functional interface like map() and
 // .filter(). Flows are cold, meaning they don't emit values unless they have an observer.
 
-flowOf<number>((collector) => function*() {
-  for (let i = 1; i <= 200; i++) {
-    collector.emit(i);
-  }
+flow<number>(function* (emit) {
+    for (let i = 1; i <= 200; i++) {
+        yield* emit(i)
+    }
 })
-  .filter(x => x % 2 === 1)
-  .map(x => x + x)
-  .onEach(x => console.log(x))
-  // This will start the flow in scope.
-  .launchIn(scope);
+    .filter(function* (x) { return x % 2 === 1 })
+    .map(function* (x) { return x + x })
+    .onEach(function* (x) { return console.log(x) })
+    // This will start the flow in scope.
+    .launchIn(scope)
 
 // This starts a coroutine that consumes two flows in order.
 
 scope.launch(function* () {
-  // suspends until flow completes
+    // suspends until flow completes
 
-  yield flowOf<number>((collector) => function*() {
-    for (let i = 1; i <= 200; i++) {
-      collector.emit(i);
-    }
-  })
-    .filter(x => x % 2 === 1)
-    .map(x => x + x)
-    // Collect() consumes the flow until it completes.
-    // Resumes the coroutine once the flow has completed.
-    .collect(x => console.log(x));
+    yield* flowOf<number>(function* (emit) {
+        for (let i = 1; i <= 200; i++) {
+            yield* emit(i)
+        }
+    })
+        .filter(function* (x) { return x % 2 === 1 })
+        .map(function* (x) { return x + x })
+        // Collect() consumes the flow until it completes.
+        // Resumes the coroutine once the flow has completed.
+        .collect(function* (x) { return console.log(x) })
 
-  yield flowOf<number>((collector) => function*() {
-    for (let i = 1; i <= 200; i++) {
-      collector.emit(i);
-    }
-  })
-    .filter(x => x % 2 === 1)
-    .map(x => x + x)
-    .collect(x => console.log(x));
+    yield* flow<number>(function* (emit) {
+        for (let i = 1; i <= 200; i++) {
+            yield* emit(i)
+        }
+    })
+        .filter(function* (x) { return x % 2 === 1 })
+        .map(function* (x) { return x + x })
+        .collect(function* (x) { return console.log(x) })
 });
 
 // Channels are for communication between coroutines.
@@ -142,20 +152,20 @@ const channel = new Channel<number>();
 // Producer/consumer coroutines communicating through a channel.
 
 scope.launch(function* () {
-  for (let i = 1; i <= 200; i++) {
-    yield channel.send(i);
-  }
+    for (let i = 1; i <= 200; i++) {
+        yield channel.send(i);
+    }
 });
 
 scope.launch(function* () {
-  for (;;) {
-    const x = yield* this.suspend(channel.receive);
+    for (; ;) {
+        const x = yield* this.suspend(channel.receive);
 
-    if (x % 2 === 1) {
-      const y = x + x;
-      console.log(y);
+        if (x % 2 === 1) {
+            const y = x + x;
+            console.log(y);
+        }
     }
-  }
 });
 
 // Transform() is a powerful way to process values emitted by a flow. It takes a coroutine that can
@@ -164,81 +174,80 @@ scope.launch(function* () {
 const eventSubject = new EventSubject<number>();
 
 scope.launch(function* () {
-  yield eventSubject
-    .transform<number>((x, collector) => function* () {
-      if (x % 2 === 1) {
-        yield wait(10);
-        collector.emit(x + x);
-      }
-    })
-    .collect(x => {
-      console.log(x);
-    });
+    yield* eventSubject
+        .transform<number>(function* (x, emit) {
+            if (x % 2 === 1) {
+                yield* delay(10)
+                yield* emit(x + x)
+            }
+        })
+        .collect(x => {
+            console.log(x)
+        })
 })
 
 // Pushes events to observers on eventSubject.
 
 for (let i = 1; i <= 200; i++) {
-  eventSubject.emit(i);
+    eventSubject.emit(i);
 }
 
 // Calling another coroutine from a coroutine.
 
 function* anotherCoroutine(this: Scope) {
-  yield wait(100);
+    yield wait(100);
 
-  // This doesn't wait for the result of the launched coroutine.
-  this.launch(function* () {
-    yield wait(200);
-  });
+    // This doesn't wait for the result of the launched coroutine.
+    this.launch(function* () {
+        yield wait(200);
+    });
 
-  return 1;
+    return 1;
 }
 
 scope.launch(function* () {
-  // This ensures all coroutines launched from anotherCoroutine() are completed before resuming.
-  const x = yield* this.call(anotherCoroutine);
-  console.log(x);
-});
-
-scope.launch(function* () {
-  // This will resume BEFORE all coroutines launched from anotherCoroutine() have completed.
-  const x = yield* anotherCoroutine.call(this);
-  console.log(x);
+    // This ensures all coroutines launched from anotherCoroutine() are completed before resuming.
+    const x = yield* anotherCoroutine();
+    console.log(x);
 });
 
 // Asynchronously call coroutines.
 
 function* jobA(this: Scope) {
-  yield wait(100);
-  return 1;
+    yield wait(100);
+    return 1;
 }
 
 function* jobB(this: Scope) {
-  yield wait(200);
-  return 2;
+    yield wait(200);
+    return 2;
 }
 
+// scope.launch<void>(function* () {
+//   // Runs both jobs concurrently.
+
+//   const resultA = this.async(jobA);
+//   const resultB = this.async(jobB);
+
+//   yield* resultA.await();
+
+//   const [resultA, resultB] = yield* this.suspend2(
+//     this.callAsync(jobA),
+//     this.callAsync(jobB),
+//   );
+
+//   console.log(`${resultA} ${resultB}`);
+// });
+
 scope.launch<void>(function* () {
-  // Runs both jobs concurrently.
+    // Races jobA with jobB to get the faster result. Cancels the slower job.
 
-  const [resultA, resultB] = yield* this.suspend2(
-    this.callAsync(jobA),
-    this.callAsync(jobB),
-  );
+    const fastestResult = yield* this.suspend(race(
+        this.callAsync(jobA),
+        this.callAsync(jobB),
+    ));
 
-  console.log(`${resultA} ${resultB}`);
-});
-
-scope.launch<void>(function* () {
-  // Races jobA with jobB to get the faster result. Cancels the slower job.
-
-  const fastestResult = yield* this.suspend(race(
-    this.callAsync(jobA),
-    this.callAsync(jobB),
-  ));
-
-  console.log(fastestResult);
+    console.log(fastestResult);
 });
 ```
 
