@@ -59,19 +59,19 @@ function associated with a `Job` or special type of `Job` called a `SupervisorSc
 other `Job`s, `SupervisorScope`s do not propagate errors up the `Job` tree for unhandled errors
 in their children and do not cancel their other child `Job`s.
 
-# Structured Concurrency error propagation
+## Structured Concurrency error propagation
 
-// An example of a tree of running Jobs
-// -* CoroutineScope-1
-//  |-* CoroutineJob-1
-//  |-* CoroutineJob-2
-//  |-* CoroutineScope-2
-//  | |-* CoroutineJob-3
-//  | |-* CoroutineJob-4
-//  |
-//  |-* SupervisorScope-1
-//    |-* CoroutineJob-5
-//    |-* CoroutineJob-6
+    An example of a tree of running Jobs
+    -* CoroutineScope-1
+     |-* CoroutineJob-1
+     |-* CoroutineJob-2
+     |-* CoroutineScope-2
+     | |-* CoroutineJob-3
+     | |-* CoroutineJob-4
+     |
+     |-* SupervisorScope-1
+       |-* CoroutineJob-5
+       |-* CoroutineJob-6
 
 ## Flows
 
