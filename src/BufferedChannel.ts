@@ -1,5 +1,8 @@
 import { Channel } from "./Channel.js"
 
+/**
+ * BufferedChannel
+ */
 export interface BufferedChannel<T> extends Channel<T> {
-    sendBuffered(value: T): boolean
+    trySend(value: T): boolean
 }

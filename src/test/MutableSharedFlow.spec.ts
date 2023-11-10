@@ -5,11 +5,11 @@ import { GlobalScope } from "../internal/JobImpl.js"
 
 describe("MutableSharedFlow tests", () => {
     it("mutableSharedFlow().emit()", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
             const sf = mutableSharedFlow<number>()
 
-            let job = this.launch(function* () {
+            const job = this.launch(function* () {
                 yield* assertFlow(sf, ...values)
             })
 
@@ -26,14 +26,14 @@ describe("MutableSharedFlow tests", () => {
         })
     })
 
-    it("mutableSharedFlow(1).emit()", (done) => {
-        GlobalScope.coroutineScope(function* () {
+    it("mutableSharedFlow(1).emit() 2", (done) => {
+        GlobalScope.launchCoroutineScope(function* () {
             const values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
-            const sf = mutableSharedFlow<number>()
+            const sf = mutableSharedFlow<number>(1)
 
-            sf.emit(values[0]!)
+            sf.emit(values[0])
 
-            let job = this.launch(function* () {
+            const job = this.launch(function* () {
                 yield* assertFlow(sf, ...values)
             })
 

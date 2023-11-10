@@ -85,7 +85,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Test awaitCancellation() suspends a coroutine and finish block is called on Job.cancel()", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             let hasStarted = false
             let hasFinished = false
 
@@ -131,13 +131,13 @@ describe("CoroutineScope tests", () => {
     })
 
     it("CoroutineScope.coroutineScope()", (done) => {
-        CoroutineScope().coroutineScope(function* () {
+        CoroutineScope().launchCoroutineScope(function* () {
             done()
         })
     })
 
     it("CoroutineScope.coroutineScope(): launch()", (done) => {
-        CoroutineScope().coroutineScope(function* () {
+        CoroutineScope().launchCoroutineScope(function* () {
             this.launch(function* () {
                 done()
             })
@@ -145,7 +145,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("CoroutineScope.coroutineScope(): async()", (done) => {
-        CoroutineScope().coroutineScope(function* () {
+        CoroutineScope().launchCoroutineScope(function* () {
             this.async(function* () {
                 done()
             })
@@ -153,13 +153,13 @@ describe("CoroutineScope tests", () => {
     })
 
     it("CoroutineScope.supervisorScope()", (done) => {
-        CoroutineScope().supervisorScope(function* () {
+        CoroutineScope().launchSupervisorScope(function* () {
             done()
         })
     })
 
     it("CoroutineScope.supervisorScope(): launch()", (done) => {
-        CoroutineScope().supervisorScope(function* () {
+        CoroutineScope().launchSupervisorScope(function* () {
             this.launch(function* () {
                 done()
             })
@@ -167,7 +167,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("CoroutineScope.supervisorScope().async()", (done) => {
-        CoroutineScope().supervisorScope(function* () {
+        CoroutineScope().launchSupervisorScope(function* () {
             this.async(function* () {
                 done()
             })
@@ -183,7 +183,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Canceling a coroutine", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             let isRunning = false
 
             const job = this.launch(function* () {
@@ -199,7 +199,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Canceling a coroutine supervisor", (done) => {
-        GlobalScope.supervisorScope(function* () {
+        GlobalScope.launchSupervisorScope(function* () {
             let isRunning = false
 
             this.launch(function* () {
@@ -223,7 +223,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Canceling job calls finally block", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             let isRunning = false
 
             const job = this.launch(function* () {
@@ -241,7 +241,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Canceling job calls nested finally block", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             let isRunning = false
 
             const job = this.launch(function* () {
@@ -264,7 +264,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Throwing in launched coroutine calls finally block", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             try {
                 this.launch(function* () {
                     throw new Error()
@@ -278,7 +278,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Throwing in launched coroutine calls finally block after delay", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             try {
                 this.launch(function* () {
                     yield* delay(0)
@@ -346,7 +346,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Async after delay", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const asyncX = this.async(function* () {
                 yield* delay(0)
                 return 2
@@ -364,7 +364,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Deferred with error throws when calling await()", (done) => {
-        GlobalScope.supervisorScope(function* () {
+        GlobalScope.launchSupervisorScope(function* () {
             const asyncY = this.async(function* () {
                 throw new Error()
             })
@@ -428,7 +428,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("A yield* inside a finally block moves job to GlobalScope", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const j = CoroutineScope().launch(function* () {
                 try {
                     yield* awaitCancellation()
@@ -494,7 +494,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Test suspendCancellableCoroutine() cancel", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const job = this.launch(function* () {
                 yield* suspendCancellableCoroutine(() => () => done())
             })
@@ -506,7 +506,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("ensureActive() finishes a coroutine that has been canceled", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const job = this.launch(function* () {
                 try {
                     let x = 1
@@ -527,7 +527,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Two concurrent await() on a Deferred", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const deferred = this.async(function* () {
                 yield* delay(0)
                 return 1
@@ -543,7 +543,7 @@ describe("CoroutineScope tests", () => {
     })
 
     it("Two concurrent await() on a Deferred again", (done) => {
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const deferred = this.async(function* () {
                 yield* delay(0)
                 return 1

@@ -1,15 +1,13 @@
-class Link<T> {
-    constructor(public left: MaybeLink<T>, public value: T, public right: MaybeLink<T>) {
-    }
-}
+type Link<T> = { left: LinkOrNull<T>, value: T, right: LinkOrNull<T> }
+type LinkOrNull<T> = Link<T> | null
 
 export class Queue<T> {
     #length: number = 0
-    #tail: MaybeLink<T> = null
-    #head: MaybeLink<T> = null
+    #tail: LinkOrNull<T> = null
+    #head: LinkOrNull<T> = null
 
     enqueue(value: T) {
-        const head = new Link(this.#head, value, null)
+        const head = { left: this.#head, value: value, right: null }
         if (this.#head !== null) {
             this.#head.right = head
         } else {
@@ -42,5 +40,3 @@ export class Queue<T> {
         }
     }
 }
-
-type MaybeLink<T> = Link<T> | null

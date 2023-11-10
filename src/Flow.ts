@@ -1,6 +1,9 @@
-import { Scope } from "./Scope.js";
+import { LaunchScope, Scope } from "./Scope.js";
 import { Coroutine } from "./Types.js";
 
+/**
+ *
+ */
 export interface Flow<T> {
     /**
      * The terminal operator that returns the first element emitted by the flow and then cancels flow's collection when
@@ -91,7 +94,7 @@ export interface Flow<T> {
 
     /**
      * Returns a flow that emits elements from the original flow transformed by transform function. When the original
-     * flow emits a new value, computation of the transform block for previous value is cancelled.
+     * flow emits a new value, computation of the transform block for previous value is canceled.
      * For example, the following flow:
      * @example
      * flow(function* () {
@@ -180,7 +183,7 @@ export interface Flow<T> {
     onEach(run: (value: T) => (void | Coroutine<void>)): Flow<T>
 
     /**
-     * Returns a flow that invokes the given action after the flow is completed or cancelled, passing the cancellation exception or failure as cause parameter of action.
+     * Returns a flow that invokes the given action after the flow is completed or canceled, passing the cancellation exception or failure as cause parameter of action.
      * Conceptually, onCompletion is similar to wrapping the flow collection into a finally block, for example the following imperative snippet:
      * @example
      * try {
@@ -281,9 +284,9 @@ export interface Flow<T> {
      *     .launchIn(uiScope)
      *
      * Note that the resulting value of launchIn is not used and the provided scope takes care of cancellation.
-     * @param {Scope} scope
+     * @param {ICoroutineScope} scope
      */
-    launchIn(scope: Scope): void
+    launchIn(scope: LaunchScope): void
 
     /**
      * Terminal flow operator that collects the given flow but ignores all emitted values. If any exception occurs

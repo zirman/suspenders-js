@@ -1,7 +1,6 @@
 import { Deferred } from "../Deferred.js"
 import { Job } from "../Job.js"
-import { Scope } from "../Scope.js"
-import { SubScope } from "../SubScope.js"
+import { LaunchCoroutineScope, Scope } from "../Scope.js"
 import { CancelFunction, Coroutine, Result, ResultCallback, Yield } from "../Types.js"
 import { debug } from "./Config.js"
 import { YieldJob } from "./YieldJob.js"
@@ -336,7 +335,7 @@ class NullJob implements Job {
     static instance = new NullJob()
 }
 
-class CoroutineScopeImpl extends JobImpl implements Scope, Job {
+class CoroutineScopeImpl extends JobImpl implements Job, LaunchCoroutineScope {
 
     constructor(coroutineExceptionHandler?: (job: Job, error: unknown) => void) {
         super(null, coroutineExceptionHandler)
@@ -347,8 +346,8 @@ class CoroutineScopeImpl extends JobImpl implements Scope, Job {
         return new CoroutineJob(this, coroutine, coroutineExceptionHandler)
     }
 
-    coroutineScope(
-        coroutine: (this: SubScope) => Coroutine<void>,
+    launchCoroutineScope(
+        coroutine: (this: Scope) => Coroutine<void>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void
     ): Job {
         return this.launch(function* () {
@@ -356,8 +355,8 @@ class CoroutineScopeImpl extends JobImpl implements Scope, Job {
         })
     }
 
-    supervisorScope(
-        coroutine: (this: SubScope) => Coroutine<void>,
+    launchSupervisorScope(
+        coroutine: (this: Scope) => Coroutine<void>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void
     ): Job {
         return this.launch(function* () {
@@ -367,17 +366,19 @@ class CoroutineScopeImpl extends JobImpl implements Scope, Job {
 }
 
 /**
- * Constructor for a CoroutineScope. Used to run coroutines that can be canceled as a group. Child Jobs that throw an
- * uncaught error will cancel this scope immediately.
+ * Constructor for a CoroutineScope. It is used to run a group of coroutines that can are canceled
+ * together. If a child job throws an uncaught error, it will cancel this scope immediately.
+ * However if a coroutineExceptionHandler is provided, it is invoked with the job and error that
+ * was thrown instead.
  * @param {(job: Job, error: unknown) => void} [coroutineExceptionHandler]
- * @return {Scope & Job}
+ * @return {ICoroutineScope & Job}
  */
-export const CoroutineScope: (coroutineExceptionHandler?: (job: Job, error: unknown) => void) => Scope & Job =
+export const CoroutineScope: (coroutineExceptionHandler?: (job: Job, error: unknown) => void) => LaunchCoroutineScope & Job =
     (coroutineExceptionHandler) => {
         return new CoroutineScopeImpl(coroutineExceptionHandler)
     }
 
-class SupervisorScopeImpl extends CoroutineScopeImpl implements Scope, Job {
+class SupervisorScopeImpl extends CoroutineScopeImpl implements LaunchCoroutineScope, Job {
     protected override throwErrorChild(child: JobImpl, error: unknown) {
         if (debug) console.log(`${this} ${this.constructor.name}.throwErrorChild(${child}, ${JSON.stringify(error)})`)
         if (!this.removeChild(child)) throw new Error()
@@ -388,9 +389,9 @@ class SupervisorScopeImpl extends CoroutineScopeImpl implements Scope, Job {
  * Constructor for a SupervisorScope. Used to run coroutines that can be canceled as a group. Child Jobs that throw an
  * uncaught error will cancel this scope immediately.
  * @param {(job: Job, error: unknown) => void} [coroutineExceptionHandler]
- * @return {Scope & Job}
+ * @return {ICoroutineScope & Job}
  */
-export const SupervisorScope: (coroutineExceptionHandler?: (job: Job, error: unknown) => void) => Scope & Job =
+export const SupervisorScope: (coroutineExceptionHandler?: (job: Job, error: unknown) => void) => LaunchCoroutineScope & Job =
     (coroutineExceptionHandler) => {
         return new SupervisorScopeImpl(coroutineExceptionHandler)
     }
@@ -412,12 +413,12 @@ export const GlobalScope = GlobalScopeImpl.instance
 /**
  * Coroutine Job who results can be yield* job.await() and does wait for all it's children to complete
  */
-class ScopeImpl<T> extends BaseDeferred<T> implements SubScope {
+class ScopeImpl<T> extends BaseDeferred<T> implements Scope {
     protected readonly coroutine: Coroutine<T>
 
     constructor(
         parent: JobImpl,
-        coroutine: (this: SubScope) => Coroutine<T>,
+        coroutine: (this: Scope) => Coroutine<T>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void,
     ) {
         super(parent, coroutineExceptionHandler)
@@ -434,13 +435,13 @@ class ScopeImpl<T> extends BaseDeferred<T> implements SubScope {
         return new DeferredImpl(this, coroutine)
     }
 
-    coroutineScope(coroutine: (this: SubScope) => Coroutine<void>): Job {
+    launchCoroutineScope(coroutine: (this: Scope) => Coroutine<void>): Job {
         return this.launch(function* () {
             yield* coroutineScope(coroutine)
         })
     }
 
-    supervisorScope(coroutine: (this: SubScope) => Coroutine<void>): Job {
+    launchSupervisorScope(coroutine: (this: Scope) => Coroutine<void>): Job {
         return this.launch(function* () {
             yield* supervisorScope(coroutine)
         })
@@ -486,7 +487,7 @@ class ScopeImpl<T> extends BaseDeferred<T> implements SubScope {
     }
 
     static * coroutineScope<T>(
-        coroutine: (this: SubScope) => Coroutine<T>,
+        coroutine: (this: Scope) => Coroutine<T>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void,
     ): Coroutine<T> {
         return yield* new ScopeImpl(yield* job(), coroutine, coroutineExceptionHandler)._await()
@@ -495,7 +496,7 @@ class ScopeImpl<T> extends BaseDeferred<T> implements SubScope {
 
 /**
  * Calls a coroutine with a coroutine scope bound to `this`.
- * @param {<T>(this: SubScope) => Coroutine<T>} coroutine
+ * @param {<T>(this: Scope) => Coroutine<T>} coroutine
  * @return {<T>T}
  */
 export const coroutineScope = ScopeImpl.coroutineScope
@@ -505,7 +506,7 @@ export const coroutineScope = ScopeImpl.coroutineScope
  * complete when their children jobs throw errors.
  * @return {SupervisorScopeImpl}
  */
-class SubScopeImpl<T> extends ScopeImpl<T> implements Scope, Job {
+class SubScopeImpl<T> extends ScopeImpl<T> implements CoroutineScopeImpl, Job {
     protected override throwErrorChild(child: JobImpl, error: unknown) {
         if (debug) console.log(`${this} ${this.constructor.name}.throwErrorChild(${child}, ${error})`)
         if (!this.removeChild(child)) throw new Error()
@@ -513,7 +514,7 @@ class SubScopeImpl<T> extends ScopeImpl<T> implements Scope, Job {
     }
 
     static * supervisorScope<T>(
-        coroutine: (this: SubScope) => Coroutine<T>,
+        coroutine: (this: Scope) => Coroutine<T>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void,
     ): Coroutine<T> {
         return yield* new SubScopeImpl(yield* job(), coroutine, coroutineExceptionHandler)._await()
@@ -522,7 +523,7 @@ class SubScopeImpl<T> extends ScopeImpl<T> implements Scope, Job {
 
 /**
  * Calls a coroutine with a supervisor scope bound to `this`.
- * @param {<T>(this: SubScope) => Coroutine<T>} coroutine
+ * @param {<T>(this: Scope) => Coroutine<T>} coroutine
  * @return {<T>T}
  */
 export const supervisorScope = SubScopeImpl.supervisorScope

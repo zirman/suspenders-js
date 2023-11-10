@@ -2,7 +2,7 @@ import { BufferedChannel } from "../BufferedChannel.js"
 import { Channel } from "../Channel.js"
 import { suspendCoroutine } from "../Common.js"
 import { Coroutine, ResultCallback } from "../Types.js"
-import { ChannelClosed } from "./Errors.js"
+import { ChannelClosed, ClosedSendChannelException } from "./Errors.js"
 import { Queue } from "./Queue.js"
 
 export const channel: <T>() => Channel<T> = () => new ChannelImpl()
@@ -27,8 +27,8 @@ class ChannelImpl<T> implements Channel<T> {
         }
     }
 
-    * send(value: T): Coroutine<boolean> {
-        if (this.#isClosed) return false
+    * send(value: T): Coroutine<void> {
+        if (this.#isClosed) throw ClosedSendChannelException
         const callback = this.#receivers.dequeue()
 
         if (callback) {
@@ -43,7 +43,6 @@ class ChannelImpl<T> implements Channel<T> {
                 })
             })
         }
-        return true
     }
 
     * receive(): Coroutine<T> {
@@ -83,7 +82,7 @@ class BufferedChannelImpl<T extends NonNullable<any>> implements BufferedChannel
     readonly #buffer: Queue<T> = new Queue()
     readonly #receivers: Queue<ResultCallback<T>> = new Queue()
 
-    constructor(capacity: number = 1, bufferOverflow: BufferOverflow = BufferOverflow.DROP_OLDEST) {
+    constructor(capacity: number = Number.POSITIVE_INFINITY, bufferOverflow: BufferOverflow = BufferOverflow.DROP_OLDEST) {
         this.#capacity = capacity
         this.#bufferOverflow = bufferOverflow
     }
@@ -99,7 +98,7 @@ class BufferedChannelImpl<T extends NonNullable<any>> implements BufferedChannel
         }
     }
 
-    sendBuffered(value: T): boolean {
+    trySend(value: T): boolean {
         const receiver = this.#receivers.dequeue()
 
         if (receiver) {
@@ -124,8 +123,10 @@ class BufferedChannelImpl<T extends NonNullable<any>> implements BufferedChannel
         return true
     }
 
-    * send(value: T): Coroutine<boolean> {
-        return this.sendBuffered(value)
+    * send(value: T): Coroutine<void> {
+        if (!this.trySend(value)) {
+            throw ClosedSendChannelException
+        }
     }
 
     * receive(): Coroutine<T> {

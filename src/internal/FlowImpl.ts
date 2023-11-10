@@ -3,7 +3,7 @@ import { Flow } from "../Flow.js"
 import { Job } from "../Job.js"
 import { MutableSharedFlow } from "../MutableSharedFlow.js"
 import { MutableStateFlow } from "../MutableStateFlow.js"
-import { Scope } from "../Scope.js"
+import { LaunchScope } from "../Scope.js"
 import { Coroutine } from "../Types.js"
 import { channel } from "./ChannelImpl.js"
 import { ChannelClosed, ConcurrentWrite, NoSuchElementException } from "./Errors.js"
@@ -158,7 +158,7 @@ abstract class BaseFlowImpl<T> implements Flow<T> {
         })
     }
 
-    launchIn(scope: Scope): void {
+    launchIn(scope: LaunchScope): void {
         const that = this
         scope.launch(function* () {
             yield* that.collect()
@@ -538,7 +538,7 @@ class FlowOf<T> extends BaseFlowImpl<T> {
 
     override* collectLatest(collector: (value: T) => Coroutine<void>): Coroutine<void> {
         if (this.#values.length > 0) {
-            yield* collector(this.#values[this.#values.length - 1]!)
+            yield* collector(this.#values[this.#values.length - 1])
         }
     }
 }

@@ -11,7 +11,7 @@ export function* suspendCoroutine<T>(continuation: (resultCallback: ResultCallba
 }
 
 /**
- * Converts a callback that can be cancelled API to a coroutine.
+ * Converts a callback that can be canceled API to a coroutine.
  * @param {<T>(resultCallback: ResultCallback<T>) => CancelFunction} continuation
  * @return {<T>T}
  */

@@ -7,7 +7,7 @@ import { GlobalScope, coroutineScope } from "../internal/JobImpl.js"
 describe("Channel tests", () => {
     it("Channel to collect", (done) => {
         const c = 1_000
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const chan = channel<number>()
 
             this.launch(function* () {
@@ -40,7 +40,7 @@ describe("Channel tests", () => {
 
     it("Channel to fan out", (done) => {
         const c = 1_000
-        GlobalScope.coroutineScope(function* () {
+        GlobalScope.launchCoroutineScope(function* () {
             const fanout = channel<number>()
             const fanin = channel<number>()
 
