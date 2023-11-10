@@ -3,9 +3,9 @@
 # Suspenders.js 0.0.9 (alpha)
 
 Suspenders.js is a library for asynchronous programming that supports coroutines, functional
-reactive programming, communicating sequential processes and "structured concurrency".
-Suspenders.js takes inspiration from Kotlin's coroutines to combine functional and imperative
-programming styles for asynchronous programming.
+reactive programming, communicating sequential processes and "structured concurrency". Suspenders.js
+takes inspiration from Kotlin's coroutines to combine functional and imperative programming styles
+for asynchronous programming.
 
 [Apache 2.0 License](LICENSE)
 
@@ -13,56 +13,45 @@ programming styles for asynchronous programming.
 
 Anyone who has written a large amount of asynchronous code in JavaScript is familiar with callback
 hell. Coroutines flatten those callbacks into what looks like regular synchronous code. Coroutines
-are special JavaScript generators that suspend using the 'yield' keyword whenever it would block.
+are special JavaScript generators that suspend using the 'yield*' keyword whenever it would block.
 When an asynchronous result is ready, it resumes the coroutine where it left off without needing a
-callback. Unlike Promises or Async/Await, coroutines can be canceled after started. Any asynchronous
-tasks that are suspended on will be stopped, and their finally blocks will be called to clean up
-any allocated resources.
+callback. Unlike Promises or Async/Await, coroutines can be canceled. Any asynchronous tasks that
+stopped, and their finally blocks will be called to clean up resources.
 
-What is structured concurrency? It organizes running coroutines into scopes to better reason about
-their lifetimes, error handling and cancellation. Coroutines are launched within a scope where they
-run until complete, throw an error, or the scope is canceled. A coroutine's finally block is guarenteed
-to run even after being canceled. This ensures that resources like network connections or file descriptors
-are always closed when no longer needed. If a coroutine throws an error, the containing scope
-cancels with an error. Canceled scopes propagate cancellation to all coroutines within it. And scopes
-that canceled with an error, call their error callback and bubble up the error to their parent
-scope.
+What is structured concurrency? It organizes running coroutines, also known as `Job`s, into
+`CoroutineScope`s to better reason about their lifetimes. A coroutine is launched within a
+`CoroutineScope`. Where it run until it completes, throws an error, or the `CoroutineScope` is
+canceled. When a coroutine throws an error, the error is propagated to it's parent `CoroutineScope`,
+which can either handle the error, or throw it to it's parent `CoroutineScope` and so on. A
+`CoroutineScope` that doesn't handle the error it's automatically canceled which canceles all it's
+children coroutines.
 
-Additionally, "Structured Concurrency" allows for automatic cancellation of coroutines that are no
-longer needed. For example, it is common to race two Promises and only take the result of the first
-to complete. The second promise cannot be canceled once started and will continue to run to
-completion. Suspenders.js automatically cancels coroutines whose results are no longer needed,
-making more efficient use of resources.
+Coroutines allow for more efficient resource management through cancellation. For example if a file
+is opened in a coroutine's `try` block and closed in the `finally` block, it is guarenteed that the
+file is closed regardless of if the coroutine completes or is canceled. This is because all
+`finally` blocks are run automatically when a coroutine is canceled.
 
 ## Why another async programming library?
 
 Why choose Suspenders.js over JavaScript Promises? Promises are good when your async process is
-short running and will never need to be canceled. With Suspenders.js, your async processes can run
-for as long as required and then canceled when they are no longer needed.
-
-Why choose Suspenders.js over async generators? Async generators can be canceled by calling
-.return() on their iterator. If their finally block requires another async operation, it will not run
-to completion. Also, the last promise in an async generator cannot be canceled because promises are
-not cancelable. Async generators cannot be canceled as a group or raced to get the fastest result.
+simple, short running and will never need to be canceled. With Suspenders.js, your async processes
+can run for as long as required and then canceled when they are no longer needed. Coroutines provide
+a simpler sytnax that is similar to async/await but also have advanced features that are better for
+long running groups of processes that need to be coordinated together and canceled together.
 
 Why choose Suspenders.js over async/await? Async await doesn't have structured concurrency and
-cancellation.
+cancellation. Coroutines has advanced features that are better for long running groups of processes
+that need to be coordinated together and canceled together.
 
-Why choose Suspenders.js over Rx.js. Suspenders.js coroutines are a cleaner way of handling
-chains of single async values. RxJava2 has the Single<T> class for this purpose. Since Rx.js does
-not currently support Single<T>, Suspenders.js should be used to handle chains of async singles.
-
-Why choose Suspenders.js over JS-CSP? Suspenders.js makes controlling the lifetime and cancellation
-of processes simple through "Structured Concurrency". Suspenders.js has support for functional
-reactive programming style using Flow, EventSubject (hot events) and StateSubject (hot state).
-Suspenders.js also has channels to support communicating sequential processes. However, channels are
-error prone and can lead to communication deadlocks, and should be avoided if other less error prone
-abstractions can be used.
+Why choose Suspenders.js over Rx.js. Suspenders.js coroutines have a simpler syntax using the
+`yield*` keyword for unwrapping values. For example `const x = yield* await()` to get an single
+value asynchronously instead of `await().flatMap((x) => ...)`. Also coordinging a tree of processes
+using structured concurrency has no analog in Rx.js.
 
 ## Examples
 
 ```ts
-import {awaitPromise, Channel, EventSubject, flowOf, race, Scope, wait} from "suspenders-js"
+import {awaitPromise, channel, flowOf, CoroutineScope} from "suspenders-js"
 
 // Structured concurrency
 // Scopes have ownership of coroutines. Coroutines are launched in a scope. If that scope is
@@ -86,24 +75,19 @@ import {awaitPromise, Channel, EventSubject, flowOf, race, Scope, wait} from "su
 //     |
 //     + - coroutine4
 
-const scope = new CoroutineScope()
+const scope = CoroutineScope()
 
-function resolveAfter2Seconds() {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve('resolved')
-        }, 2000)
-    })
+function* returnAfter2Seconds(): Coroutine<string> {
+    yield* delay(2_000) // suspends for 2 seconds
+    return "resolved"
 }
 
-function* asyncCall() {
+scope.launch(function* () {
     console.log('calling')
-    const result = yield* awaitPromise(resolveAfter2Seconds())
+    const result = yield* returnAfter2Seconds()
     console.log(result)
     // Expected output: "resolved"
-}
-
-scope.launch(asyncCall)
+})
 
 // Flows emit multiple async values. They provide a typical functional interface like map() and
 // .filter(). Flows are cold, meaning they don't emit values unless they have an observer.
