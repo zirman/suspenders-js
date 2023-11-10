@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "outDir": "./lib/",
-    "target": "es2022",
-    "module": "commonjs", // Commonjs is used for development and testing. Published using es2022.
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
@@ -19,9 +20,10 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": true,
     "allowUnreachableCode": false,
-    "allowUnusedLabels": false
+    "allowUnusedLabels": false,
+    "noUncheckedIndexedAccess": false,
   },
   "include": [
     "src"
