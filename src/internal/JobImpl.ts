@@ -426,9 +426,9 @@ class ScopeImpl<T> extends BaseDeferred<T> implements Scope {
         this.resumeWith({ value: undefined })
     }
 
-    launch(coroutine: () => Coroutine<void>): Job {
+    launch(coroutine: () => Coroutine<void>, coroutineExceptionHandler?: ((job: Job, error: unknown) => void)): Job {
         if (!this.isActive()) return NullJob.instance
-        return new CoroutineJob(this, coroutine)
+        return new CoroutineJob(this, coroutine, coroutineExceptionHandler)
     }
 
     async<T>(coroutine: () => Coroutine<T>): Deferred<T> {
