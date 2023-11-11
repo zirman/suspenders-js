@@ -12,8 +12,8 @@ import { Queue } from "./Queue.js"
 
 abstract class BaseFlowImpl<T> implements Flow<T> {
     * first(predicate?: (value: T) => boolean): Coroutine<T> {
-        try {
-            return yield* this.collector(predicate
+        return yield* this.collector(
+            predicate
                 ? function* (collect) {
                     try {
                         for (; ;) {
@@ -24,7 +24,7 @@ abstract class BaseFlowImpl<T> implements Flow<T> {
                         }
                     } catch (error) {
                         if (error !== ChannelClosed) throw error
-                        throw NoSuchElementException
+                        throw new NoSuchElementException()
                     }
                 }
                 : function* (collect) {
@@ -32,13 +32,10 @@ abstract class BaseFlowImpl<T> implements Flow<T> {
                         return yield* collect()
                     } catch (error) {
                         if (error !== ChannelClosed) throw error
-                        throw NoSuchElementException
+                        throw new NoSuchElementException()
                     }
                 }
-            )
-        } catch (error) {
-            throw error
-        }
+        )
     }
 
     * last(): Coroutine<T> {
@@ -57,7 +54,7 @@ abstract class BaseFlowImpl<T> implements Flow<T> {
                 return value
             } catch (error) {
                 if (error !== ChannelClosed) throw error
-                throw NoSuchElementException
+                throw new NoSuchElementException()
             }
         })
     }

@@ -1,13 +1,8 @@
-class NoSuchElementExceptionImpl implements Error {
-    static instance = new NoSuchElementExceptionImpl()
-
-    name = "NoSuchElementException"
-    message = "No such element"
-
-    private constructor() { }
+export class NoSuchElementException extends Error {
+    constructor() {
+        super("No such element")
+    }
 }
-
-export const NoSuchElementException = NoSuchElementExceptionImpl.instance
 
 class ChannelClosedImpl implements Error {
     static instance = new ChannelClosedImpl()

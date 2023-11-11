@@ -92,7 +92,7 @@ describe("Flow tests", () => {
                 try {
                     yield* emptyFlow().first()
                 } catch (error) {
-                    assert(error === NoSuchElementException)
+                    assert(error instanceof NoSuchElementException)
                 }
             }
             done()
