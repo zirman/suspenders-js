@@ -3,6 +3,7 @@ import { Channel } from "../Channel.js"
 import { suspendCoroutine } from "../Common.js"
 import { Coroutine, ResultCallback } from "../Types.js"
 import { ChannelClosed, ClosedSendChannelException } from "./Errors.js"
+import { Failure } from "../Failure.js"
 import { Queue } from "./Queue.js"
 
 export const channel: <T>() => Channel<T> = () => new ChannelImpl()
@@ -19,7 +20,7 @@ class ChannelImpl<T> implements Channel<T> {
     close(): void {
         this.#isClosed = true
 
-        const result = { error: ChannelClosed }
+        const result = new Failure(ChannelClosed)
         for (; ;) {
             const resultCallback = this.#receivers.dequeue()
             if (resultCallback === null) break
@@ -33,12 +34,12 @@ class ChannelImpl<T> implements Channel<T> {
 
         if (callback) {
             // resume receiver
-            callback({ value })
+            callback(value)
         } else {
             // suspend sender
             yield* suspendCoroutine((resultCallback: ResultCallback<void>) => {
                 this.#senders.enqueue(() => {
-                    resultCallback({ value: undefined })
+                    resultCallback(undefined)
                     return value
                 })
             })
@@ -89,7 +90,7 @@ class BufferedChannelImpl<T extends NonNullable<any>> implements BufferedChannel
 
     close(): void {
         this.#isClosed = true
-        const result = { error: ChannelClosed }
+        const result = new Failure(ChannelClosed)
 
         for (; ;) {
             const resultCallback = this.#receivers.dequeue()
@@ -102,7 +103,7 @@ class BufferedChannelImpl<T extends NonNullable<any>> implements BufferedChannel
         const receiver = this.#receivers.dequeue()
 
         if (receiver) {
-            receiver({ value })
+            receiver(value)
             return true
         }
 

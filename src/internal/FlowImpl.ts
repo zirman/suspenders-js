@@ -797,7 +797,7 @@ class MutableStateFlowImpl<T> extends BaseFlowImpl<T> implements MutableStateFlo
                 const collectors = this.#collectors
 
                 const callback = (value: T) => {
-                    resultCallback({ value })
+                    resultCallback(value)
                 }
 
                 collectors.add(callback)
@@ -856,7 +856,7 @@ class MutableStateFlowImpl<T> extends BaseFlowImpl<T> implements MutableStateFlo
 
                     const callback = (value: T) => {
                         lastValue = value
-                        resultCallback({ value })
+                        resultCallback(value)
                     }
 
                     collectors.add(callback)
@@ -911,7 +911,7 @@ class MutableSharedFlowImpl<T> extends BaseFlowImpl<T> implements MutableSharedF
                 const collectors = this.#collectors
 
                 const callback = (value: T) => {
-                    resultCallback({ value })
+                    resultCallback(value)
                 }
 
                 collectors.add(callback)
@@ -964,7 +964,7 @@ class MutableSharedFlowImpl<T> extends BaseFlowImpl<T> implements MutableSharedF
                 const collectors = that.#collectors
 
                 const callback = (value: T) => {
-                    resultCallback({ value })
+                    resultCallback(value)
                 }
 
                 collectors.add(callback)

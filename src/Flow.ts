@@ -1,5 +1,5 @@
-import { LaunchScope, Scope } from "./Scope.js";
-import { Coroutine } from "./Types.js";
+import { LaunchScope } from "./Scope.js"
+import { Coroutine } from "./Types.js"
 
 /**
  *
@@ -284,7 +284,7 @@ export interface Flow<T> {
      *     .launchIn(uiScope)
      *
      * Note that the resulting value of launchIn is not used and the provided scope takes care of cancellation.
-     * @param {ICoroutineScope} scope
+     * @param {LaunchScope} scope
      */
     launchIn(scope: LaunchScope): void
 

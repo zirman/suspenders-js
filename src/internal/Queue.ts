@@ -32,7 +32,7 @@ export class Queue<T> {
         return this.#length
     }
 
-    *[Symbol.iterator]() {
+    * [Symbol.iterator]() {
         let tail = this.#tail
         while (tail) {
             yield tail.value

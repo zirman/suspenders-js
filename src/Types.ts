@@ -1,3 +1,4 @@
+import { Failure } from "./Failure.js"
 import { YieldJob } from "./internal/YieldJob.js"
 
 /**
@@ -8,7 +9,7 @@ export type Coroutine<T> = Generator<Yield, T>
 /**
  * Data object contains value or error of resolved asynchronous operation.
  */
-export type Result<T> = Readonly<{ error: any } | { value: T }>
+export type Result<T> = Failure | T
 
 /**
  * Callback function called with result of an asynchronous operation.

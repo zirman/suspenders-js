@@ -1,5 +1,6 @@
 import { CancelFunction, Coroutine, ResultCallback } from "./Types.js"
 import { job } from "./internal/JobImpl.js"
+import { Failure } from "./Failure.js"
 
 /**
  * Converts a callback API to a coroutine.
@@ -28,7 +29,7 @@ export function* suspendCancellableCoroutine<T>(
  */
 export function* delay(millis?: number): Coroutine<void> {
     yield (resultCallback: ResultCallback<void>) => {
-        const timeout = setTimeout(() => resultCallback({ value: undefined }), millis)
+        const timeout = setTimeout(() => resultCallback(undefined), millis)
         return () => clearTimeout(timeout)
     }
 }
@@ -58,8 +59,8 @@ export function* awaitCancellation(): Coroutine<never> {
 export function* awaitPromise<T>(promise: Promise<T>): Coroutine<T> {
     return yield* suspendCoroutine((resultCallback) => {
         promise.then(
-            (value) => resultCallback({ value }),
-            (error) => resultCallback({ error })
+            (value) => resultCallback(value),
+            (error) => resultCallback(new Failure(error)),
         )
     })
 }
@@ -75,11 +76,11 @@ export function* httpGet(url: string): Coroutine<string> {
 
         xhttp.onloadend = function () {
             if (this.status === 200) {
-                resultCallback({ value: this.responseText })
+                resultCallback(this.responseText)
             } else {
-                resultCallback({
-                    error: new Error(`code: ${this.status} text: ${this.statusText}`)
-                })
+                resultCallback(new Failure(
+                    new Error(`code: ${this.status} text: ${this.statusText}`),
+                ))
             }
         }
 

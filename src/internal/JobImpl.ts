@@ -4,6 +4,7 @@ import { LaunchCoroutineScope, Scope } from "../Scope.js"
 import { CancelFunction, Coroutine, Result, ResultCallback, Yield } from "../Types.js"
 import { debug } from "./Config.js"
 import { YieldJob } from "./YieldJob.js"
+import { Failure } from "../Failure.js"
 
 enum JOB_STATE {
     RUNNING, // Initial state. Job will continue to run normally until an error or has completed it's work.
@@ -152,10 +153,10 @@ abstract class BaseCoroutineJob<T> extends JobImpl implements Job {
             let iteratorResult
 
             try {
-                if ("error" in result) {
-                    iteratorResult = this.coroutine.throw(result.error)
+                if (result instanceof Failure) {
+                    iteratorResult = this.coroutine.throw(result.value)
                 } else {
-                    iteratorResult = this.coroutine.next(result.value)
+                    iteratorResult = this.coroutine.next(result)
                 }
             } catch (error) {
                 // New child that throws an error could have stopped this coroutine.
@@ -171,14 +172,14 @@ abstract class BaseCoroutineJob<T> extends JobImpl implements Job {
             // completed with result
             if (iteratorResult.done) {
                 this.completing()
-                this.setResult(iteratorResult)
+                this.setResult(iteratorResult.value)
                 if ((this.children?.size ?? 0) === 0) this.complete()
                 return
             }
 
             // suspension point
             if (iteratorResult.value === YieldJob) {
-                this.resumeWith({ value: this })
+                this.resumeWith(this)
             } else {
                 let isCalledOnce = false
                 this.#cancelCallback = iteratorResult.value((result) => {
@@ -247,7 +248,7 @@ class CoroutineJob<T> extends BaseCoroutineJob<T> {
     ) {
         super(parent, coroutineExceptionHandler)
         this.coroutine = coroutine()
-        this.resumeWith({ value: undefined })
+        this.resumeWith(undefined)
     }
 
     override setResult(_: Result<T>) {
@@ -262,12 +263,12 @@ abstract class BaseDeferred<T> extends BaseCoroutineJob<T> implements Job {
         this.result = result
     }
 
-    protected * _await(): Coroutine<T> {
+    protected* _await(): Coroutine<T> {
         if (this.result !== null) {
-            if ("value" in this.result) {
-                return this.result.value
+            if (this.result instanceof Failure) {
+                throw this.result.value
             } else {
-                throw this.result.error
+                return this.result
             }
         } else {
             return (yield (resultCallback: ResultCallback<T>) => {
@@ -293,7 +294,7 @@ abstract class BaseDeferred<T> extends BaseCoroutineJob<T> implements Job {
 
     override throwError(error: unknown) {
         super.throwError(error)
-        this.setResult({ error })
+        this.setResult(new Failure(error))
     }
 }
 
@@ -306,7 +307,7 @@ class DeferredImpl<T> extends BaseDeferred<T> implements Deferred<T>, Job {
     constructor(parent: JobImpl, coroutine: () => Coroutine<T>) {
         super(parent)
         this.coroutine = coroutine()
-        this.resumeWith({ value: undefined })
+        this.resumeWith(undefined)
     }
 
     protected override setResult(result: Result<T>) {
@@ -371,7 +372,7 @@ class CoroutineScopeImpl extends JobImpl implements Job, LaunchCoroutineScope {
  * However if a coroutineExceptionHandler is provided, it is invoked with the job and error that
  * was thrown instead.
  * @param {(job: Job, error: unknown) => void} [coroutineExceptionHandler]
- * @return {ICoroutineScope & Job}
+ * @return {LaunchCoroutineScope & Job}
  */
 export const CoroutineScope: (coroutineExceptionHandler?: (job: Job, error: unknown) => void) => LaunchCoroutineScope & Job =
     (coroutineExceptionHandler) => {
@@ -389,7 +390,7 @@ class SupervisorScopeImpl extends CoroutineScopeImpl implements LaunchCoroutineS
  * Constructor for a SupervisorScope. Used to run coroutines that can be canceled as a group. Child Jobs that throw an
  * uncaught error will cancel this scope immediately.
  * @param {(job: Job, error: unknown) => void} [coroutineExceptionHandler]
- * @return {ICoroutineScope & Job}
+ * @return {LaunchCoroutineScope & Job}
  */
 export const SupervisorScope: (coroutineExceptionHandler?: (job: Job, error: unknown) => void) => LaunchCoroutineScope & Job =
     (coroutineExceptionHandler) => {
@@ -423,7 +424,7 @@ class ScopeImpl<T> extends BaseDeferred<T> implements Scope {
     ) {
         super(parent, coroutineExceptionHandler)
         this.coroutine = coroutine.call(this)
-        this.resumeWith({ value: undefined })
+        this.resumeWith(undefined)
     }
 
     launch(coroutine: () => Coroutine<void>, coroutineExceptionHandler?: ((job: Job, error: unknown) => void)): Job {
@@ -455,10 +456,10 @@ class ScopeImpl<T> extends BaseDeferred<T> implements Scope {
 
     protected override* _await(): Coroutine<T> {
         if (!this.isActive() && this.result !== null) {
-            if ("value" in this.result) {
-                return this.result.value
+            if (this.result instanceof Failure) {
+                throw this.result.value
             } else {
-                throw this.result.error
+                return this.result
             }
         } else {
             return (yield (resultCallback: ResultCallback<T>) => {
@@ -482,11 +483,11 @@ class ScopeImpl<T> extends BaseDeferred<T> implements Scope {
             }
         }
 
-        this.setResult({ error })
+        this.setResult(new Failure(error))
         this.complete()
     }
 
-    static * coroutineScope<T>(
+    static* coroutineScope<T>(
         coroutine: (this: Scope) => Coroutine<T>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void,
     ): Coroutine<T> {
@@ -513,7 +514,7 @@ class SubScopeImpl<T> extends ScopeImpl<T> implements CoroutineScopeImpl, Job {
         if (this.isCompleting() && (this.children?.size ?? 0) === 0) this.complete()
     }
 
-    static * supervisorScope<T>(
+    static* supervisorScope<T>(
         coroutine: (this: Scope) => Coroutine<T>,
         coroutineExceptionHandler?: (job: Job, error: unknown) => void,
     ): Coroutine<T> {

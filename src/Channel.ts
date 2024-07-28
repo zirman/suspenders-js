@@ -8,6 +8,8 @@ import { Coroutine } from "./Types.js"
  */
 export interface Channel<T> {
     send(value: T): Coroutine<void>
+
     receive(): Coroutine<T>
+
     close(): void
 }

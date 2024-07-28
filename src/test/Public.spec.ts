@@ -2,7 +2,19 @@ import { assert } from "chai"
 import { measureTimeMillis } from "../Common.js"
 import { job, SupervisorScope } from "../internal/JobImpl.js"
 import { Queue } from "../internal/Queue.js"
-import { awaitCancellation, awaitPromise, coroutineScope, CoroutineScope, delay, ensureActive, GlobalScope, supervisorScope, suspendCancellableCoroutine, suspendCoroutine } from "../main.js"
+import {
+    awaitCancellation,
+    awaitPromise,
+    coroutineScope,
+    CoroutineScope,
+    delay,
+    ensureActive,
+    Failure,
+    GlobalScope,
+    supervisorScope,
+    suspendCancellableCoroutine,
+    suspendCoroutine,
+} from "../main.js"
 
 describe("CoroutineScope tests", () => {
     it("CoroutineScope().launch()", (done) => {
@@ -446,7 +458,7 @@ describe("CoroutineScope tests", () => {
     it("Test suspendCoroutine() resumes on result", (done) => {
         GlobalScope.launch(function* () {
             yield* suspendCoroutine((resultCallback) => {
-                setTimeout(() => resultCallback({ value: undefined }))
+                setTimeout(() => resultCallback(undefined))
             })
 
             done()
@@ -457,7 +469,7 @@ describe("CoroutineScope tests", () => {
         GlobalScope.launch(function* () {
             try {
                 yield* suspendCoroutine((resultCallback) => {
-                    setTimeout(() => resultCallback({ error: new Error() }))
+                    setTimeout(() => resultCallback(new Failure(new Error())))
                 })
             } catch {
                 done()
@@ -468,7 +480,7 @@ describe("CoroutineScope tests", () => {
     it("Test suspendCancellableCoroutine() resumes on result", (done) => {
         GlobalScope.launch(function* () {
             yield* suspendCancellableCoroutine((resultCallback) => {
-                const timeout = setTimeout(() => resultCallback({ value: undefined }))
+                const timeout = setTimeout(() => resultCallback(undefined))
                 return () => {
                     clearInterval(timeout)
                 }
@@ -482,7 +494,7 @@ describe("CoroutineScope tests", () => {
         GlobalScope.launch(function* () {
             try {
                 yield* suspendCancellableCoroutine((resultCallback) => {
-                    const timeout = setTimeout(() => resultCallback({ error: new Error() }))
+                    const timeout = setTimeout(() => resultCallback(new Failure(new Error())))
                     return () => {
                         clearInterval(timeout)
                     }
