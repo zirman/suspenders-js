@@ -48,13 +48,13 @@
   },
   "homepage": "https://github.com/zirman/suspenders-js#readme",
   "devDependencies": {
-    "@types/assert": "^1.5.7",
-    "@types/chai": "^4.3.8",
-    "@types/mocha": "^10.0.2",
+    "@types/assert": "^1.5.10",
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.7",
     "assert": "^2.1.0",
-    "chai": "^4.3.10",
-    "mocha": "^10.2.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "chai": "^4.5.0",
+    "mocha": "^10.7.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
   }
 }
