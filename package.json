@@ -1,60 +1,60 @@
 {
-  "name": "suspenders-js",
-  "version": "0.0.9",
-  "type": "module",
-  "description": "Asynchronous programming library utilizing coroutines and structured concurrency.",
-  "main": "lib/main.js",
-  "types": "lib/main.d.ts",
-  "files": [
-    "/lib"
-  ],
-  "scripts": {
-    "clean": "rm -Rf ./lib",
-    "build": "tsc --declaration",
-    "prepublish": "tsc",
-    "test": "mocha"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/zirman/suspenders-js.git"
-  },
-  "keywords": [
-    "coroutines",
-    "lightweight threads",
-    "structured concurrency",
-    "reactive",
-    "high performance",
-    "promise",
-    "async",
-    "await",
-    "future",
-    "channels",
-    "generators",
-    "goroutines",
-    "green threads",
-    "parallel",
-    "concurrent",
-    "communicating sequential processes",
-    "rx",
-    "bacon",
-    "mobx",
-    "cycle",
-    "most"
-  ],
-  "author": "Robert Chrzanowski",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/zirman/suspenders-js/issues"
-  },
-  "homepage": "https://github.com/zirman/suspenders-js#readme",
-  "devDependencies": {
-    "@types/assert": "^1.5.10",
-    "@types/chai": "^4.3.16",
-    "@types/mocha": "^10.0.7",
-    "assert": "^2.1.0",
-    "chai": "^4.5.0",
-    "mocha": "^10.7.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
-  }
+    "name": "suspenders-js",
+    "version": "0.0.9",
+    "type": "module",
+    "description": "Asynchronous programming library utilizing coroutines and structured concurrency.",
+    "main": "lib/main.js",
+    "types": "lib/main.d.ts",
+    "files": [
+        "/lib"
+    ],
+    "scripts": {
+        "clean": "rm -Rf ./lib",
+        "build": "tsc --declaration",
+        "prepublish": "tsc",
+        "test": "mocha"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/zirman/suspenders-js.git"
+    },
+    "keywords": [
+        "coroutines",
+        "lightweight threads",
+        "structured concurrency",
+        "reactive",
+        "promise",
+        "async",
+        "await",
+        "futures",
+        "channels",
+        "generators",
+        "goroutines",
+        "green threads",
+        "virtual threads",
+        "parallel",
+        "concurrent",
+        "communicating sequential processes",
+        "rx",
+        "bacon",
+        "mobx",
+        "cycle",
+        "most"
+    ],
+    "author": "Robert Chrzanowski",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/zirman/suspenders-js/issues"
+    },
+    "homepage": "https://github.com/zirman/suspenders-js#readme",
+    "devDependencies": {
+        "@types/assert": "^1.5.10",
+        "@types/chai": "^4.3.16",
+        "@types/mocha": "^10.0.7",
+        "assert": "^2.1.0",
+        "chai": "^4.5.0",
+        "mocha": "^10.7.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.5.4"
+    }
 }
