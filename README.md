@@ -11,16 +11,16 @@ functional and imperative programming styles for asynchronous programming.
 ## Intro
 
 Anyone who has written a large amount of asynchronous code in JavaScript is familiar with callback
-hell. Coroutines flatten those callbacks into what looks like normal synchronous code. Coroutines
-are special JavaScript generators that suspend whenever it would block waiting for a result. When an
-result is ready, it resumes the coroutine where it left off. Unlike Promises or Async/Await,
-coroutines can be stopped at any time. Coroutines are guarenteed to run their cleanup logic inside
-of finally blocks when they are cancelled. This ensures that resources are not leaked when a
-coroutine is canceled.
+hell. Callback hell can be mitigated through the use of JavaScript generators (aka coroutine).
+Coroutines are implemented using JavaScript generators that suspend whenever there is an
+asynchronous operation. When the asynchronous operation resolves, the coroutine is resumed where it
+was suspended with the result. Unlike Promises or Async/Await, coroutines can be halted at any time.
+Coroutines are guaranteed to run their cleanup logic inside finally blocks when they are
+cancelled. This ensures that resources are not leaked.
 
 Coroutines allow for more efficient resource management through cancellation. For example if a
 database connection is opened in a coroutine's `try` block and closed in the `finally` block, it is
-guarenteed that the db connection is closed regardless of if the coroutine completes or is canceled.
+guaranteed that the db connection is closed regardless of if the coroutine completes or is canceled.
 This is because all `finally` blocks are run automatically when a coroutine is canceled.
 
 ## Why another async programming library?
@@ -28,7 +28,7 @@ This is because all `finally` blocks are run automatically when a coroutine is c
 Why choose Suspenders.js over JavaScript Promises? Promises are good when your async process is
 simple, short running and will never need to be canceled. With Suspenders.js, your async processes
 can run for as long as required and then be canceled when they are no longer needed. Structured
-concurrency provides a simpler sytnax that is similar to async/await, but also has advanced features
+concurrency provides a simpler syntax that is similar to async/await, but also has advanced features
 for longer running groups of processes that are coordinated together.
 
 Why choose Suspenders.js over async/await? Async await doesn't have methods for canceling running
