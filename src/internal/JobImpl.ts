@@ -504,7 +504,7 @@ export const coroutineScope = ScopeImpl.coroutineScope
 
 /**
  * Constructor for a SupervisorScope. Used to run coroutines that can be canceled as a group. SupervisorScopes do not
- * complete when their children jobs throw errors.
+ * complete when their children jobs throw uncaught errors.
  * @return {SupervisorScopeImpl}
  */
 class SubScopeImpl<T> extends ScopeImpl<T> implements CoroutineScopeImpl, Job {
