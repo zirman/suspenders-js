@@ -3,7 +3,7 @@ import { measureTimeMillis } from "../Common.js"
 import { job, SupervisorScope } from "../internal/JobImpl.js"
 import { Queue } from "../internal/Queue.js"
 import {
-    awaitCancellation,
+    awaitCancelation as awaitCancelation,
     awaitPromise,
     coroutineScope,
     CoroutineScope,
@@ -87,7 +87,7 @@ describe("CoroutineScope tests", () => {
 
         scope.launch(function* () {
             try {
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             } finally {
                 done()
             }
@@ -96,7 +96,7 @@ describe("CoroutineScope tests", () => {
         scope.cancel()
     })
 
-    it("Test awaitCancellation() suspends a coroutine and finish block is called on Job.cancel()", (done) => {
+    it("Test awaitCancelation() suspends a coroutine and finish block is called on Job.cancel()", (done) => {
         GlobalScope.launchCoroutineScope(function* () {
             let hasStarted = false
             let hasFinished = false
@@ -104,7 +104,7 @@ describe("CoroutineScope tests", () => {
             const job = this.launch(function* () {
                 try {
                     hasStarted = true
-                    yield* awaitCancellation()
+                    yield* awaitCancelation()
                 } finally {
                     hasFinished = true
                 }
@@ -129,7 +129,7 @@ describe("CoroutineScope tests", () => {
         scope.launch(function* () {
             try {
                 hasRun = true
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             } finally {
                 done()
             }
@@ -200,7 +200,7 @@ describe("CoroutineScope tests", () => {
 
             const job = this.launch(function* () {
                 isRunning = true
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             })
 
             assert(isRunning)
@@ -241,7 +241,7 @@ describe("CoroutineScope tests", () => {
             const job = this.launch(function* () {
                 try {
                     isRunning = true
-                    yield* awaitCancellation()
+                    yield* awaitCancelation()
                 } finally {
                     done()
                 }
@@ -262,7 +262,7 @@ describe("CoroutineScope tests", () => {
                     that.launch(function* () {
                         try {
                             isRunning = true
-                            yield* awaitCancellation()
+                            yield* awaitCancelation()
                         } finally {
                             done()
                         }
@@ -282,7 +282,7 @@ describe("CoroutineScope tests", () => {
                     throw new Error()
                 })
 
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             } finally {
                 done()
             }
@@ -297,7 +297,7 @@ describe("CoroutineScope tests", () => {
                     throw new Error()
                 })
 
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             } finally {
                 done()
             }
@@ -313,7 +313,7 @@ describe("CoroutineScope tests", () => {
                     })
                 })
 
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             } finally {
                 done()
             }
@@ -331,7 +331,7 @@ describe("CoroutineScope tests", () => {
                     })
                 })
 
-                yield* awaitCancellation()
+                yield* awaitCancelation()
             } finally {
                 done()
             }
@@ -404,7 +404,7 @@ describe("CoroutineScope tests", () => {
 
                 try {
                     (yield* asyncX.await()) + (yield* asyncY.await())
-                    yield* awaitCancellation()
+                    yield* awaitCancelation()
                 } finally {
                     done()
                 }
@@ -443,7 +443,7 @@ describe("CoroutineScope tests", () => {
         GlobalScope.launchCoroutineScope(function* () {
             const j = CoroutineScope().launch(function* () {
                 try {
-                    yield* awaitCancellation()
+                    yield* awaitCancelation()
                 } finally {
                     yield* delay(0)
                     assert(((GlobalScope as any).children).has(yield* job()))

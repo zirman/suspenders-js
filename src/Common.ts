@@ -43,10 +43,10 @@ export function* ensureActive(): Coroutine<void> {
 }
 
 /**
- * Waits until the coroutine is canceled. Used to keep finally blocks from running until cancellation.
+ * Waits until the coroutine is canceled. Used to keep finally blocks from running until cancelation.
  * @return {never}
  */
-export function* awaitCancellation(): Coroutine<never> {
+export function* awaitCancelation(): Coroutine<never> {
     return yield* suspendCoroutine(() => {
     })
 }
