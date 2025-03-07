@@ -67,11 +67,10 @@ in their children and do not cancel their other child `Job`s.
      |-* CoroutineJob-2
      |-* CoroutineScope-2
      | |-* CoroutineJob-3
-     | |-* CoroutineJob-4
-     |
-     |-* SupervisorScope-1
+     | \-* CoroutineJob-4
+     \-* SupervisorScope-1
        |-* CoroutineJob-5
-       |-* CoroutineJob-6
+       \-* CoroutineJob-6
 
 ## Flows
 
