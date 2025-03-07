@@ -106,7 +106,7 @@ function* jobA(): Coroutine<number> {
 }
 
 function* jobB(): Coroutine<number> {
-    yield* wait(200)
+    yield* delay(200)
     return 2
 }
 
