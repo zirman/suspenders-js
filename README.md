@@ -29,7 +29,7 @@ Why choose Suspenders.js over JavaScript Promises? Promises are good when your a
 simple, short running and will never need to be canceled. With Suspenders.js, your async processes
 can run for as long as required and then be canceled when they are no longer needed. Structured
 concurrency provides a simpler syntax that is similar to async/await, but also has advanced features
-for longer running groups of processes that are coordinated together.
+for managing trees of processes.
 
 Why choose Suspenders.js over async/await? Async await doesn't have methods for canceling running
 processes or grouping related processes. Structured concurrency has advanced features for longer
