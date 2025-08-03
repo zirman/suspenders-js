@@ -11,14 +11,14 @@ functional and imperative programming styles for asynchronous programming.
 ## Intro
 
 Anyone who has written a large amount of asynchronous code in JavaScript is familiar with callback
-hell. Callback hell can be mitigated through the use of JavaScript generators (aka coroutine).
-Coroutines are implemented using JavaScript generators that suspend whenever there is an
+hell. Callback hell can be mitigated through the use of JavaScript generators (aka coroutines).
+Coroutines are implemented using JavaScript generators that suspend when there is an
 asynchronous operation. When the asynchronous operation resolves, the coroutine is resumed where it
 was suspended with the result. Unlike Promises or Async/Await, coroutines can be halted at any time.
 Coroutines are guaranteed to run their cleanup logic inside finally blocks when they are
-cancelled. This ensures that resources are not leaked.
+canceled. This ensures that resources are not leaked.
 
-Coroutines allow for more efficient resource management through cancellation. For example if a
+Coroutines allow for more efficient resource management through cancellation. For example, if a
 database connection is opened in a coroutine's `try` block and closed in the `finally` block, it is
 guaranteed that the db connection is closed regardless of if the coroutine completes or is canceled.
 This is because all `finally` blocks are run automatically when a coroutine is canceled.
@@ -26,33 +26,32 @@ This is because all `finally` blocks are run automatically when a coroutine is c
 ## Why another async programming library?
 
 Why choose Suspenders.js over JavaScript Promises? Promises are good when your async process is
-simple, short running and will never need to be canceled. With Suspenders.js, your async processes
+simple, short-running and will never need to be canceled. With Suspenders.js, your async processes
 can run for as long as required and then be canceled when they are no longer needed. Structured
-concurrency provides a simpler syntax that is similar to async/await, but also has advanced features
+concurrency provides a simpler syntax that is similar to async/await but also has advanced features
 for managing trees of processes.
 
 Why choose Suspenders.js over async/await? Async await doesn't have methods for canceling running
-processes or grouping related processes. Structured concurrency has advanced features for longer
-running groups of processes that need to be coordinated together and canceled together.
+processes or structuring related processes. Structured concurrency has advanced features for longer
+running trees of processes that need to be coordinated together and canceled together.
 
 Why choose Suspenders.js over Rx.js. Suspenders.js coroutines have a simpler syntax using the
-`yield*` keyword for unwrapping values. For example `const x = yield* await()` to get an single
-value asynchronously instead of `await().flatMap((x) => ...)`. Also coordinating a tree of processes
-using structured concurrency has no analog in Rx.js. Coroutines are easier to write, because they
-do not require a large library of combinators. Reading coroutines is more natural due to the syntax
-being indistingusable from normal synchronous code.
+`yield*` keyword for unwrapping values. For example `const x = yield* getValue()` to get an single
+value asynchronously instead of `getValue().flatMap((x) => ...)`. Also, coordinating a tree of related
+processes using structured concurrency has no analog in Rx.js. Coroutines are cleaner to write because
+they do not require a large library of combinators functions. Reading coroutines is more natural due
+to the syntax being indistinguishable from normal synchronous code.
 
 ## Structured Concurrency Terminology
 
-What is structured concurrency? It a way of organizing running processes into a hierarchy and
-managing the state and error handling of this tree of processes. Nodes on this tree are called
-`Job`s. `Job`s have 3 states, RUNNING, COMPLETING or COMPLETED. A `Job` tree automatically removes
-`Job`s that have COMPLETED. A COMPLETING `Job` is waiting for all of it's children to complete
-before COMPLETING itself. No new RUNNING child `Job`s can be added as a direct child to a COMPLETING
-`Job`.
+What is structured concurrency? It is a way of organizing running processes into a tree and
+managing the error handling this tree of processes. Nodes on this tree are `Job`s. `Job`s have one of
+three states, RUNNING, COMPLETING or COMPLETED. A `Job` tree automatically removes `Job`s that have
+COMPLETED. A COMPLETING `Job` is waiting for all of its children to complete before COMPLETING
+itself. No new RUNNING child `Job`s can be added as a direct child to a COMPLETING `Job`.
 
-A `CoroutineScope` is a special type of `Job` for starting, also known as launching, a coroutine. A
-coroutine has an associated node in the `Job` tree with the parent being the `CoroutineScope`.
+A `CoroutineScope` is a special type of `Job` for starting, also known as building, a coroutine. A
+coroutine has an associated node in the `Job` tree with the parent being the `CoroutineScope` `Job`.
 
 Unhandled thrown errors are propagated up the tree until it is either handled by an error handler
 function associated with a `Job` or special type of `Job` called a `SupervisorScope`. Unlike all
